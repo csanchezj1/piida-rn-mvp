@@ -1,0 +1,42 @@
+# Smoke E2E (RN, iOS + Android):
+#  1. Login
+#  2. FAB → "Nuevo gasto"
+#  3. Asserción: pantalla de gasto rendereó (Tipo de gasto visible)
+#
+# La lógica del form (SelectList, validaciones, submit, dispatch de
+# createPurchase) está cubierta por __tests__/BuyScreen.test.js
+# y __tests__/SelectList.test.js (RNTL — ms en lugar de minutos).
+# Maestro solo valida que navegación + bundle dev + nav-stack funcionen
+# en device real.
+#
+# Uso: ./maestro/helpers/run-flow.sh expense maestro/expense-flow.yaml
+
+appId: com.sainetapps.piidaerp
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Ingresar"
+    timeout: 60000
+
+# ── Login ──────────────────────────────────────────────────
+- tapOn: "Ingresa tu correo electrónico"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Ingresa tu contraseña"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Ingresar"
+- extendedWaitUntil:
+    visible: "Inventario"
+    timeout: 15000
+
+# ── FAB → Nuevo gasto ─────────────────────────────────────
+- tapOn:
+    point: "90%,92%"
+- tapOn: "Nuevo gasto"
+
+# ── Asserción smoke: el form rendereó ─────────────────────
+- extendedWaitUntil:
+    visible: "Tipo de gasto"
+    timeout: 8000

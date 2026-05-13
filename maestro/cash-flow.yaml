@@ -1,0 +1,76 @@
+# Cash flow E2E (RN, iOS + Android):
+#  1. Login con usuario sembrado
+#  2. Abrir caja con $50.000
+#  3. Cerrar caja contando $80.000 → cuadre con sobrante.
+#
+# Uso:
+#   ./maestro/helpers/run-flow.sh cash maestro/cash-flow.yaml
+
+appId: com.sainetapps.piidaerp
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Ingresar"
+    timeout: 60000
+
+# ── Login ──────────────────────────────────────────────────
+- tapOn: "Ingresa tu correo electrónico"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Ingresa tu contraseña"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Ingresar"
+- extendedWaitUntil:
+    visible: "Inventario"
+    timeout: 15000
+
+# ── Abrir caja ─────────────────────────────────────────────
+# Tap FAB en esquina inferior derecha (react-native-floating-action no expone testID)
+- tapOn:
+    point: "90%,92%"
+- tapOn: "Abrir caja"
+- extendedWaitUntil:
+    visible: "Ingresa la cantidad de dinero con la que inicias tu turno."
+    timeout: 8000
+- tapOn: "Monto en efectivo"
+- inputText: "50000"
+- hideKeyboard
+- tapOn: "Iniciar turno"
+# Esperamos el botón "Aceptar" del dialog success
+- extendedWaitUntil:
+    visible: "Aceptar"
+    timeout: 10000
+- tapOn: "Aceptar"
+
+# Volvemos al home — debe aparecer "Inventario" del BottomTabs.
+- extendedWaitUntil:
+    visible: "Inventario"
+    timeout: 10000
+
+# ── Cerrar caja con sobrante ───────────────────────────────
+- tapOn:
+    point: "90%,92%"
+- tapOn: "Prestar / Cerrar caja"
+- extendedWaitUntil:
+    visible: "Selecciona una opción para continuar"
+    timeout: 8000
+# Abrir el dropdown y elegir "Cerrar caja"
+- tapOn: "Selecciona que deseas hacer"
+- tapOn: "Cerrar caja"
+- extendedWaitUntil:
+    visible: "Ingresa la cantidad de dinero en efectivo que tienes en caja."
+    timeout: 5000
+- tapOn: "Monto en efectivo"
+- inputText: "80000"
+- hideKeyboard
+- tapOn: "Finalizar turno"
+# Esperamos el dialog con el botón Aceptar (success o cuadre)
+- extendedWaitUntil:
+    visible: "Aceptar"
+    timeout: 10000
+- tapOn: "Aceptar"
+- extendedWaitUntil:
+    visible: "Inventario"
+    timeout: 10000

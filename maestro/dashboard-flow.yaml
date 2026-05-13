@@ -1,0 +1,46 @@
+# Dashboard flow E2E (RN, iOS + Android):
+#  1. Login con usuario sembrado
+#  2. Tab "Reportes" → verificar HomeScreen
+#  3. Tab "Movimientos" → ver "Saldo total"
+#
+# Uso: ./maestro/helpers/run-flow.sh dashboard maestro/dashboard-flow.yaml
+
+appId: com.sainetapps.piidaerp
+---
+- launchApp:
+    clearState: true
+
+# Esperar a que Metro termine de cargar el bundle (Android dev tarda 10-30s)
+- extendedWaitUntil:
+    visible: "Ingresar"
+    timeout: 60000
+
+# ── Login ──────────────────────────────────────────────────
+- tapOn: "Ingresa tu correo electrónico"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Ingresa tu contraseña"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Ingresar"
+- extendedWaitUntil:
+    visible: "Inventario"
+    timeout: 15000
+
+# ── Tab Reportes (HomeScreen con stats) ───────────────────
+# El tap por TEXT en Android no siempre propaga al TouchableOpacity.
+# Tab Reportes está en ~33% width / 95% height del bottom tab bar.
+- tapOn:
+    point: "33%,93%"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Mes actual"
+    timeout: 10000
+
+# ── Tab Movimientos (BalanceScreen) ───────────────────────
+- tapOn:
+    point: "52%,93%"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Saldo total"
+    timeout: 10000

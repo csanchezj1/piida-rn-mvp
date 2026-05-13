@@ -1,0 +1,34 @@
+# Smoke test: login con un usuario sembrado vía API.
+#
+# Sembrar antes con run-flow.sh:
+#   ./maestro/helpers/run-flow.sh login maestro/login-flow.yaml
+
+appId: com.sainetapps.piidaerp
+---
+- launchApp:
+    clearState: true
+# Esperar a que Metro cargue el bundle JS (en Android dev puede tardar)
+- extendedWaitUntil:
+    visible: "Ingresar"
+    timeout: 60000
+- assertVisible: "Por favor ingresa tus datos para iniciar sesión"
+
+# Dismissar LogBox warnings de RN dev mode si aparecen.
+- tapOn:
+    text: "Open debugger to view warnings."
+    optional: true
+- tapOn:
+    text: "Dismiss"
+    optional: true
+
+- tapOn: "Ingresa tu correo electrónico"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Ingresa tu contraseña"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Ingresar"
+# Espera hasta 15s a que aparezca el dashboard post-login (BottomMenu)
+- extendedWaitUntil:
+    visible: "Inventario"
+    timeout: 15000

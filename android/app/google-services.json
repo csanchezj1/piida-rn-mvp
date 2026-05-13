@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "41338424477",
+    "project_id": "piida-erp",
+    "storage_bucket": "piida-erp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:41338424477:android:b996750068bbe49a83d874",
+        "android_client_info": {
+          "package_name": "com.sainetapps.piidaerp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMsM2S-OsU9sn-ZW1LnjiREquud2m_xEA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

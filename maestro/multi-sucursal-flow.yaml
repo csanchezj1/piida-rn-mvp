@@ -1,0 +1,56 @@
+# Multi-sucursal smoke (Bloque 4 RN)
+#
+# Flujo: login admin (con 2 sucursales sembradas previamente) → header
+# burger → drawer → "Cambiar sucursal" → modal → seleccionar sucursal B
+# → de vuelta al home. Smoke iOS+Android.
+#
+# El wrapper run-multi-sucursal.sh siembra la 2ª sucursal y exporta
+# EMAIL/PASSWORD/BRANCH_B_NAME antes de correr este flow.
+#
+# Uso:
+#   ./maestro/helpers/run-multi-sucursal.sh maestro/multi-sucursal-flow.yaml
+
+appId: com.sainetapps.piidaerp
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Ingresar"
+    timeout: 60000
+
+# ── Login ──────────────────────────────────────────────────
+- tapOn: "Ingresa tu correo electrónico"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Ingresa tu contraseña"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Ingresar"
+- extendedWaitUntil:
+    visible: "Inventario"
+    timeout: 15000
+
+# ── Abrir drawer (top-right "more" en Header) ─────────────
+# El componente Header expone onMore que dispara showDrawer(true).
+# Usamos accessibilityLabel para evitar dependencia de coordenadas que
+# difieren entre iOS (safe area grande) y Android.
+- tapOn: "Abrir menú"
+
+# ── Tap "Cambiar sucursal" en el drawer ───────────────────
+- extendedWaitUntil:
+    visible: "Cambiar sucursal"
+    timeout: 5000
+- tapOn: "Cambiar sucursal"
+
+# ── Modal abierto: el título "Cambiar sucursal" sigue, y la
+#    sucursal B aparece como opción ──────────────────────────
+- extendedWaitUntil:
+    visible: ${BRANCH_B_NAME}
+    timeout: 5000
+- tapOn: ${BRANCH_B_NAME}
+
+# ── Volvemos al home; Inventario sigue visible (re-fetch
+#    por refetchTick — el contenido cambió internamente) ───
+- extendedWaitUntil:
+    visible: "Inventario"
+    timeout: 10000

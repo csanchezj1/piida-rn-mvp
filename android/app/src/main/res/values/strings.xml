@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Piida</string>
+    <string name="mpsdk_api_key">MDExMDc3NGUyNGQwZTc4YmQxYjIyZjNjNWZlY2VjMDMyZTJlNzQ1NjYyYTRmOWVhYjdmZDBmNTZjNGY1ZmU2NzJlMWYzYTJmNjBhZjQ1ZTRmMjZmYzllZDczZTVhNjQ0MTk3NWZmZWRkYzNkZGMzOGRmM2UzYTJhOGRmODNmYTM=</string>
+    <string name="facebook_app_id">1634387780886815</string>
+    <string name="facebook_client_token">2ed034408ec93a6a6d25c03b6e644aab</string>
+</resources>

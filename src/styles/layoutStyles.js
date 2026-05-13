@@ -1,0 +1,130 @@
+import {StyleSheet, Dimensions, StatusBar} from 'react-native';
+import { colors, normalizeSize, fonts } from './basicStyles';
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
+
+const getLayoutStyles = () =>
+	StyleSheet.create({
+    container:{
+      flex:1,
+      backgroundColor:'white'
+    },
+    safe:{
+      flexDirection:'row',
+      marginTop:normalizeSize(50),
+    },
+    topImg:{
+      position:'absolute',
+      right:0,
+      top:normalizeSize(-3),
+      width:screenWidth/3,
+      height:normalizeSize(220),
+      //opacity:0.8
+    },
+    bottom:{
+      width:screenWidth,
+      //height:screenWidth/3,
+      alignSelf:'center',
+      position:'absolute',
+      bottom:normalizeSize(0),
+      //opacity:0.8
+    },
+    shareCont:{
+      paddingHorizontal:normalizeSize(30),
+      marginEnd:normalizeSize(10),
+    },
+    share:{
+      width:normalizeSize(25),
+      height:normalizeSize(25),
+      tintColor:colors.text,
+    },
+    qrScanCont:{
+      paddingHorizontal:normalizeSize(20),
+      marginEnd:normalizeSize(10),
+    },
+    qrScan:{
+      width:normalizeSize(35),
+      height:normalizeSize(35),
+      tintColor:colors.text,
+      backgroundColor:'#FFFFFF88'
+    },
+    search:{
+      marginHorizontal:normalizeSize(10)
+    },
+    logo:{
+      width:normalizeSize(200),
+      height:normalizeSize(100),
+      alignSelf:'center',
+    },
+    contentContainer:{
+      flexGrow:1,
+      justifyContent:'center',
+      paddingBottom:normalizeSize(20)
+    },
+    title:{
+      color:colors.dialogTitle,
+      fontFamily:fonts.bold,
+      textAlign:'center',
+      fontSize:normalizeSize(18),
+      marginHorizontal:normalizeSize(30),
+      marginTop:normalizeSize(20)
+    },
+    titleCont:{
+      flex:1,
+      marginEnd:normalizeSize(10)
+    },
+    titleTwo:{
+      color:colors.dialogTitle,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(22),
+      marginHorizontal:normalizeSize(30)
+    },
+    subtitle:{
+      color:colors.buttonBackground,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(22),
+      marginHorizontal:normalizeSize(30),
+      marginBottom:normalizeSize(10)
+    },
+    description:{
+      color:colors.text,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(14), 
+      marginHorizontal:normalizeSize(30),
+      marginVertical:normalizeSize(10),
+      textAlign:'center',
+    },
+    descriptionTwo:{
+      color:colors.text,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(14), 
+      marginStart:normalizeSize(30),
+      marginVertical:normalizeSize(10),
+    }
+  }
+);
+
+const dialogContainer = () =>
+	StyleSheet.create({
+    overlay:{
+      backgroundColor:'rgba(0,0,0,0.53)',
+      position:'absolute',
+      width:'100%',
+      height:'100%',
+      zIndex:1,
+      alignContent:'center',
+      justifyContent:'center'
+    },
+    confirm: {
+      borderRadius: normalizeSize(20),
+      backgroundColor:'white',
+      marginHorizontal:normalizeSize(16),
+      height:screenHeight-normalizeSize(150)
+    },
+  }
+);
+
+export {
+  getLayoutStyles,
+  dialogContainer
+}

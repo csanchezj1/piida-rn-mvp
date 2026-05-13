@@ -1,0 +1,53 @@
+# Sale flow E2E (RN, iOS + Android):
+#  1. Login con usuario sembrado
+#  2. Crear venta libre desde el keypad (NewSaleScreen)
+#  3. Confirmar pago en efectivo
+#  4. Verificar comprobante
+#
+# Uso:
+#   ./maestro/helpers/run-flow.sh sale maestro/sale-flow.yaml
+
+appId: com.sainetapps.piidaerp
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Ingresar"
+    timeout: 60000
+
+- tapOn: "Ingresa tu correo electrónico"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Ingresa tu contraseña"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Ingresar"
+- extendedWaitUntil:
+    visible: "Inventario"
+    timeout: 15000
+
+# Activar pestaña Keypad (Venta libre)
+- tapOn:
+    text: "Manual"
+    optional: true
+
+# Tipear 25000
+- tapOn: "2"
+- tapOn: "5"
+- tapOn: "0"
+- tapOn: "0"
+- tapOn: "0"
+
+- tapOn:
+    text: "Cobrar"
+    optional: true
+- tapOn:
+    text: "Confirmar venta"
+    optional: true
+- tapOn:
+    text: "Confirmar"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "Venta registrada"
+    timeout: 15000

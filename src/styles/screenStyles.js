@@ -1,0 +1,1593 @@
+import {StyleSheet, Dimensions} from 'react-native';
+import { colors, normalizeSize, fonts } from './basicStyles';
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
+
+const getSplashStyles = () => 
+  StyleSheet.create({
+    container:{
+      flex:1,
+      justifyContent:'center',
+      backgroundColor:'white',
+    },
+    logo:{
+      alignSelf:'center',
+      width:normalizeSize(250),
+      height:normalizeSize(250)
+    },
+  }
+);
+
+const getHomeStyles = () => 
+  StyleSheet.create({
+    container:{
+      flex:1,
+      backgroundColor:'white',
+    },
+    contentContainer:{
+      flexGrow:1,
+      paddingTop:normalizeSize(10),
+      paddingBottom:normalizeSize(150)
+    },
+    balanceCont:{
+      flexDirection:'row',
+      alignSelf:'flex-end',
+      marginBottom:normalizeSize(10),
+      zIndex:1
+    },
+    balanceLabel:{
+      color:colors.dialogTitle,
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.medium,
+    },
+    titleCont:{
+      flexDirection:'row'
+    },
+    moreCont:{
+      alignSelf:'flex-end',
+      paddingVertical:normalizeSize(10),
+      marginBottom:normalizeSize(10)
+    },
+    moreTxt:{
+      color:colors.label,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.medium,
+      textDecorationLine: 'underline'
+    },
+    inventarioLabel:{
+      color:colors.dialogTitle,
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.bold,
+      marginVertical:normalizeSize(10),
+      flex:1
+    },
+    balanceTotal:{
+      color:colors.text,
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.bold,
+      flex:1,
+    },
+    circleGraph:{
+      marginHorizontal:normalizeSize(20),
+      shadowColor: 'black',
+      shadowOpacity: 0.3, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      paddingHorizontal:normalizeSize(20),
+      paddingVertical:normalizeSize(5),
+      borderRadius:normalizeSize(5),
+      minHeight:normalizeSize(40),
+      minWidth:normalizeSize(176), 
+      backgroundColor:'white',
+      shadowOffset: { height: normalizeSize(4), width: 0}, // IOS
+      elevation: normalizeSize(4), // Android
+      marginBottom:normalizeSize(20),
+      paddingVertical:normalizeSize(20)
+    },   
+    textTwo:{
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.bold,
+      color:colors.red
+    },
+    shimmerCont:{
+      marginTop:normalizeSize(10)
+    },
+    shimmer:{
+      height:normalizeSize(220),
+      width:screenWidth-normalizeSize(40),
+      marginStart:normalizeSize(20),
+      marginBottom:normalizeSize(12),
+      borderRadius:normalizeSize(5)
+    },
+  }
+);
+
+const getFormStyles = () => 
+  StyleSheet.create({
+    card:{
+      shadowColor: 'black',
+      shadowOpacity: 0.2, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      paddingHorizontal:normalizeSize(20),
+      paddingVertical:normalizeSize(0),
+      borderRadius:normalizeSize(5),
+      backgroundColor:'white',
+      shadowOffset: { height: normalizeSize(2), width: 0}, // IOS
+      elevation: normalizeSize(4), // Android
+      marginHorizontal:normalizeSize(16),
+      marginBottom:normalizeSize(10),
+      marginTop:normalizeSize(5),
+      paddingTop:normalizeSize(20),
+      paddingBottom:normalizeSize(10),
+    },
+    productItem:{
+      marginBottom:normalizeSize(10)
+    },
+    totalCont:{
+      flexDirection:'row',
+      alignSelf:'flex-end',
+      alignItems:'center',
+      marginBottom:normalizeSize(10)
+    },
+    input_:{
+      marginHorizontal:normalizeSize(16),
+    },
+    label:{
+      color:colors.dialogTitle,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(14),
+    },
+    labelBig:{
+      color:colors.dialogTitle,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(20),
+      textAlign:'center'
+    },
+    valueBig:{
+      color:colors.dialogText,
+      fontFamily:fonts.medium,
+      fontSize:normalizeSize(20),
+      textAlign:'center'
+    },
+    value:{
+      color:colors.dialogText,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(14),
+    },
+    valueBold:{
+      color:colors.dialogText,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(14),
+    },
+    dataCont:{
+      marginBottom:normalizeSize(10)
+    },
+    recoveryCont:{
+      padding:normalizeSize(10),
+      alignSelf:'center'
+    },
+    recoveryText:{
+      color:colors.red,
+      fontSize:normalizeSize(14),
+      textAlign:'center',
+      fontFamily:fonts.medium,
+      textDecorationLine:'underline'
+    },
+    button:{
+      marginBottom:normalizeSize(40),
+      marginTop:normalizeSize(10),
+    },
+    in:{
+      marginTop:normalizeSize(10)
+    },
+    addCont:{
+      flexDirection:'row',
+      paddingVertical:normalizeSize(5),
+      alignItems:'center'
+    },
+    addTxt:{
+      color:colors.buttonBackground,
+      fontSize:normalizeSize(14),
+      textAlign:'center',
+      fontFamily:fonts.bold,
+      textAlign:'left'
+    },
+    addImg:{
+      width:normalizeSize(20),
+      height:normalizeSize(20),
+      marginStart:normalizeSize(5),
+      //tintColor:colors.buttonBackground
+    },
+    errorText:{
+      color:colors.error,
+      fontSize:normalizeSize(12),
+      fontFamily:fonts.regular,
+    },
+    text:{
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+    },
+    textBold:{
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.bold,
+    },
+    paymentCont:{
+      shadowColor: 'black',
+      shadowOpacity: 0.2, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      shadowOffset: { height: normalizeSize(2), width: 0}, // IOS
+      elevation: normalizeSize(4), // Android
+      paddingHorizontal:normalizeSize(20),
+      paddingVertical:normalizeSize(10),
+      marginBottom:normalizeSize(5),
+      borderRadius:normalizeSize(5),
+      backgroundColor:'white',
+    },
+    noLabel:{
+      color:colors.dialogTitle,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(20),
+      marginHorizontal:normalizeSize(25),
+      marginTop:normalizeSize(40),
+      marginBottom:normalizeSize(10)
+    },
+    noText:{
+      color:colors.dialogText,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(14),
+      marginHorizontal:normalizeSize(25),
+      marginBottom:normalizeSize(40)
+    },
+    checkCont:{
+      flexDirection:'row',
+      alignItems:'center',
+      marginHorizontal:normalizeSize(20),
+    },
+    checkImg:{
+      width:normalizeSize(20),
+      height:normalizeSize(20),
+    },
+    checkTxt:{
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      marginStart:normalizeSize(5),
+      fontFamily:fonts.regular,
+    },
+    completePayCont:{
+      flexDirection:'row',
+      paddingHorizontal:normalizeSize(20),
+      paddingVertical:normalizeSize(10),
+      backgroundColor:'#FFFFFFB0',
+      borderWidth:normalizeSize(1),
+      borderColor:'#00000050',
+    },
+    completePayText:{
+      flex:1,
+      color:colors.dialogText,
+      fontFamily:fonts.semiBold,
+      fontSize:normalizeSize(14),
+    },
+    completePayBtn:{
+      minHeight: 'auto',
+      minWidth: 'auto',
+      padding:normalizeSize(10),
+      backgroundColor:colors.label
+    }
+  }
+);
+
+const getLoginStyles = () => 
+  StyleSheet.create({
+    recoveryCont:{
+      paddingHorizontal:normalizeSize(30),
+      paddingTop:normalizeSize(5),
+      paddingBottom:normalizeSize(30),
+      alignSelf:'flex-end'
+    },
+    recoveryText:{
+      color:colors.red,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.medium,
+      textDecorationLine:'underline',
+      textAlign:'center'
+    },
+    input:{
+      marginHorizontal:normalizeSize(26),
+    },
+    button:{
+      marginBottom:normalizeSize(30),
+      marginTop:normalizeSize(10),
+    },
+    label:{
+      color:colors.text,
+      fontSize:normalizeSize(16),
+      textAlign:'center',
+      fontFamily:fonts.regular,
+    },
+    subtitle:{
+      color:colors.text,
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.medium,
+      marginHorizontal:normalizeSize(20),
+      marginTop:normalizeSize(20),
+      marginBottom:normalizeSize(10)
+    },
+    wppSafe:{
+      position:'absolute',
+      top:normalizeSize(10),
+      left:normalizeSize(20),
+      paddingTop:normalizeSize(20)
+    },
+    wppCont:{
+      flexDirection:'row',
+      alignItems:'center'
+    },
+    wppImg:{
+      width:normalizeSize(35),
+      height:normalizeSize(35),
+      marginEnd:normalizeSize(5)
+    },
+    wppText:{
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+      textAlign:'center'
+    },
+  }
+);
+
+const getBalanceStyles = () => 
+  StyleSheet.create({
+    container:{
+      flex:1,
+      backgroundColor:'white',
+    },
+    safe:{
+      backgroundColor:colors.text
+    },
+    topCont:{
+      backgroundColor:'red'
+    },
+    top:{
+      position:'absolute',
+      width:screenWidth,
+      height:screenWidth*0.46
+    },
+    head:{
+      flexDirection:'row',
+      justifyContent:'space-between',
+      alignItems:'flex-end',
+      paddingBottom:normalizeSize(10),
+    },
+    movTxt:{
+      fontSize:normalizeSize(18),
+      marginStart:normalizeSize(20),
+      color:colors.dialogTitle,
+      fontFamily:fonts.medium,
+    },
+    totalLabel:{
+      fontSize:normalizeSize(18),
+      color:'#000',
+      fontFamily:fonts.bold,
+      textAlign:'right',
+      marginEnd:normalizeSize(20),
+    },
+    totalValue:{
+      fontSize:normalizeSize(24),
+      marginEnd:normalizeSize(20),
+      color:'#000',
+      fontFamily:fonts.bold,
+      marginBottom:normalizeSize(30),
+      textAlign:'right'
+    },
+    distanceToEdge:{
+      vertical:normalizeSize(80), 
+      horizontal:normalizeSize(30)
+    },
+    color:colors.label,
+    textOne:{
+      fontSize:18,
+      fontFamily:fonts.medium,
+      color:'white'
+    },
+    noresult:{
+      color:colors.text,
+      fontSize:normalizeSize(20),
+      fontFamily:fonts.medium,
+      textAlign:'center',
+      marginHorizontal:normalizeSize(20),
+      marginBottom:normalizeSize(100)
+    },
+    shimmerCont:{
+      marginTop:normalizeSize(10)
+    },
+    shimmer:{
+      height:normalizeSize(65),
+      width:screenWidth-normalizeSize(40),
+      marginStart:normalizeSize(20),
+      marginBottom:normalizeSize(12),
+      borderRadius:normalizeSize(5)
+    },
+    item:{
+      marginBottom:normalizeSize(10),
+      marginHorizontal:normalizeSize(20)
+    },
+    loaderContainer:{
+      marginBottom:normalizeSize(150),
+      marginTop:normalizeSize(10),
+    },
+    date:{
+      color:colors.text,
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.bold,
+      marginHorizontal:normalizeSize(20),
+      marginTop:normalizeSize(15)
+    }
+  }
+);
+
+const getOrdersStyles = () => 
+  StyleSheet.create({
+    container:{
+      flex:1,
+      backgroundColor:'white',
+    },
+    safe:{
+      backgroundColor:colors.dialogTitle,
+      paddingTop:normalizeSize(40)
+    },
+    top:{
+      position:'absolute',
+      width:screenWidth,
+      height:screenWidth*0.46
+    },
+    head:{
+      flexDirection:'row',
+      //justifyContent:'space-between',
+      alignItems:'flex-end',
+      marginTop:normalizeSize(0),
+      paddingBottom:normalizeSize(10),
+    },
+    movTxt:{
+      fontSize:normalizeSize(18),
+      marginStart:normalizeSize(20),
+      color:colors.dialogTitle,
+      fontFamily:fonts.medium,
+    },
+    totalLabel:{
+      fontSize:normalizeSize(24),
+      color:'white',
+      fontFamily:fonts.medium,
+      textAlign:'right',
+      marginEnd:normalizeSize(20),
+    },
+    tab:{
+      width:null,
+      minWidth:null,
+      marginStart:normalizeSize(10),
+      marginVertical:normalizeSize(10),
+      borderColor:'black',
+    },
+    distanceToEdge:{
+      vertical:normalizeSize(80), 
+      horizontal:normalizeSize(30)
+    },
+    color:colors.label,
+    textOne:{
+      fontSize:18,
+      fontFamily:fonts.medium,
+      color:'white'
+    },
+    noresult:{
+      color:colors.text,
+      fontSize:normalizeSize(20),
+      fontFamily:fonts.medium,
+      textAlign:'center',
+      marginHorizontal:normalizeSize(20),
+      marginBottom:normalizeSize(100),
+    },
+    shimmerCont:{
+      marginTop:normalizeSize(10)
+    },
+    shimmer:{
+      height:normalizeSize(65),
+      width:screenWidth-normalizeSize(40),
+      marginStart:normalizeSize(20),
+      marginBottom:normalizeSize(12),
+      borderRadius:normalizeSize(5)
+    },
+    item:{
+      marginBottom:normalizeSize(10),
+      marginHorizontal:normalizeSize(20)
+    },
+    loaderContainer:{
+      //marginBottom:normalizeSize(150),
+      marginTop:normalizeSize(10),
+    },
+    date:{
+      color:colors.text,
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.bold,
+      marginHorizontal:normalizeSize(20),
+      marginTop:normalizeSize(15)
+    },
+    bar:{
+      marginHorizontal:normalizeSize(20),
+    }
+  }
+);
+
+const getInventoryStyles = () => 
+  StyleSheet.create({
+    container:{
+      flex:1,
+      backgroundColor:'white',
+    },
+    safe:{
+      backgroundColor:colors.buttonBackground
+    },
+    topCont:{
+      backgroundColor:'red'
+    },
+    top:{
+      position:'absolute',
+      width:screenWidth,
+      height:screenWidth*0.46
+    },
+    head:{
+      justifyContent:'space-between',
+      alignItems:'flex-end',
+      marginTop:normalizeSize(0),
+      paddingBottom:normalizeSize(0),
+    },
+    movTxt:{
+      fontSize:normalizeSize(18),
+      marginStart:normalizeSize(20),
+      marginBottom:normalizeSize(10),
+      color:colors.red,
+      fontFamily:fonts.medium,
+    },
+    totalLabel:{
+      fontSize:normalizeSize(18),
+      color:colors.text,
+      fontFamily:fonts.bold,
+      marginHorizontal:normalizeSize(20),
+    },
+    totalValue:{
+      fontSize:normalizeSize(24),
+      marginEnd:normalizeSize(20),
+      color:'white',
+      fontFamily:fonts.bold,
+      marginBottom:normalizeSize(50),
+      textAlign:'right'
+    },
+    distanceToEdge:{
+      vertical:normalizeSize(80), 
+      horizontal:normalizeSize(30)
+    },
+    color:colors.label,
+    textOne:{
+      fontSize:18,
+      fontFamily:fonts.medium,
+      color:'white'
+    },
+    noresult:{
+      color:colors.text,
+      fontSize:normalizeSize(20),
+      fontFamily:fonts.medium,
+      textAlign:'center',
+      marginHorizontal:normalizeSize(20),
+      marginBottom:normalizeSize(100)
+    },
+    shimmerCont:{
+      marginTop:normalizeSize(10)
+    },
+    shimmer:{
+      height:normalizeSize(65),
+      width:screenWidth-normalizeSize(40),
+      marginStart:normalizeSize(20),
+      marginBottom:normalizeSize(12),
+      borderRadius:normalizeSize(5)
+    },
+    item:{
+      marginBottom:normalizeSize(10),
+      marginHorizontal:normalizeSize(20)
+    },
+    date:{
+      color:colors.text,
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.bold,
+      marginHorizontal:normalizeSize(20),
+      marginTop:normalizeSize(15)
+    },
+    productCont:{
+      //backgroundColor:'rgba(131, 195, 66, 0.7)',
+      marginEnd:normalizeSize(10),
+      borderRadius:normalizeSize(5),
+      marginVertical:normalizeSize(5),
+      padding:normalizeSize(5),
+      borderWidth:normalizeSize(1.08),
+      borderColor:colors.text,
+    },
+    productLabel:{
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.medium,
+      color:colors.text,
+    },
+    productValue:{
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.bold,
+      color:colors.text,
+      alignSelf:'flex-end'
+    },
+    loaderContainer:{
+      marginBottom:normalizeSize(150),
+      marginTop:normalizeSize(10),
+    }
+  }
+);
+
+const getProviderStyles = () => 
+  StyleSheet.create({
+    container:{
+      flex:1,
+      justifyContent:'center',
+      backgroundColor:'white',
+    },
+    textOne:{
+      fontSize:18,
+      fontFamily:fonts.medium,
+      
+      color:'white'
+    },
+    color:colors.buttonBackground,
+    distanceToEdge:{
+      vertical:normalizeSize(80), 
+      horizontal:normalizeSize(30)
+    },
+    listCont:{
+      marginHorizontal:normalizeSize(30),
+      marginVertical:normalizeSize(6),
+      borderRadius:normalizeSize(5),
+      shadowColor: 'black',
+      shadowOpacity: 0.15, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      backgroundColor:'white',
+      padding:normalizeSize(10),
+      shadowOffset: { height: normalizeSize(4), width: 0}, // IOS
+      elevation: normalizeSize(10), // Android
+    },
+    listText:{
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.medium,
+      color:colors.text
+    },
+    seeVariations:{
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.medium,
+      color:colors.carmine,
+      alignSelf:'flex-end'
+    },
+    label:{
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+      color:colors.dialogTitle
+    },
+    noresult:{
+      color:colors.text,
+      fontSize:normalizeSize(20),
+      fontFamily:fonts.medium,
+      textAlign:'center',
+      marginHorizontal:normalizeSize(20)
+    },
+    shimmerCont:{
+      marginTop:normalizeSize(30)
+    },
+    shimmer:{
+      height:normalizeSize(40),
+      width:screenWidth-normalizeSize(40),
+      marginStart:normalizeSize(20),
+      marginBottom:normalizeSize(12),
+      borderRadius:normalizeSize(5)
+    },
+    checkIcon:{
+      width:normalizeSize(18),
+      height:normalizeSize(18),
+      marginEnd:normalizeSize(5)
+    }
+  }
+);
+
+const getBuyDetailsStyles = () => 
+  StyleSheet.create({
+    reciptCont:{
+      backgroundColor:'white',
+      marginEnd:normalizeSize(24),
+      marginStart:normalizeSize(24),
+      shadowOpacity: 0.3, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      shadowOffset: { height: normalizeSize(3), width: 0}, // IOS
+      elevation: normalizeSize(4), // Android
+      marginTop:normalizeSize(8),
+      paddingTop:normalizeSize(20),
+      marginBottom:normalizeSize(100)
+    },
+    logo:{
+      width:normalizeSize(100),
+      height:normalizeSize(50),
+      alignSelf:'center'
+    },
+    statusContainer:{
+      backgroundColor:colors.dialogTitle,
+      height:normalizeSize(24),
+      borderRadius:normalizeSize(12),
+      alignSelf:'center',
+      paddingStart:normalizeSize(16),
+      paddingEnd:normalizeSize(16),
+      justifyContent:'center',
+      marginTop:normalizeSize(5),
+      marginBottom:normalizeSize(23),
+      minWidth:normalizeSize(114)
+    },
+    statusText:{
+      color:'white',
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.medium,
+      flex:1,
+      lineHeight:normalizeSize(24),
+      alignSelf:'center'
+    },
+    storeName:{
+      fontSize:normalizeSize(20), 
+      fontFamily:fonts.bold,
+      color:colors.text,
+      flex:1,
+      textAlign:'left',
+      marginHorizontal:normalizeSize(18),
+      marginBottom:normalizeSize(10)
+    },
+    item:{ 
+      marginHorizontal:normalizeSize(14),
+      marginTop:normalizeSize(10)
+    },
+    separator:{
+      marginTop:normalizeSize(10), 
+      marginBottom:normalizeSize(14), 
+      height:normalizeSize(2), 
+      backgroundColor:'#0e0e0e', 
+      opacity:0.1,
+      marginEnd:normalizeSize(14),
+      marginStart:normalizeSize(14)
+    },
+    priceCont:{
+      flexDirection:'row',
+      paddingBottom:normalizeSize(10)
+    },
+    totalLabel:{
+      color:colors.red,
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.bold,
+      marginEnd:normalizeSize(26),
+      marginStart:normalizeSize(26)
+    },
+    totalValue:{
+      color:colors.buttonBackground,
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.medium,
+      marginEnd:normalizeSize(26),
+      marginStart:normalizeSize(26),
+      flex:1,
+      textAlign:'right'
+    },
+    title:{
+      color:colors.label,
+      fontSize:normalizeSize(18),
+      fontFamily:fonts.medium,
+      marginHorizontal:normalizeSize(18),
+      textAlign:'center'
+    },
+    label:{
+      color:colors.label,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+      marginHorizontal:normalizeSize(18),
+      marginTop:normalizeSize(10)
+    },
+    value:{
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.medium,
+      marginHorizontal:normalizeSize(18),
+    },
+    footer:{
+      width:'100%', 
+      position:'absolute', 
+      bottom:normalizeSize(-75), 
+      left:0
+    },
+    obsCont:{
+      marginVertical:normalizeSize(10)
+    }
+  }
+);
+
+const getTermsStyles = () => 
+  StyleSheet.create({
+    card:{
+      marginHorizontal:normalizeSize(20),
+      shadowColor: 'black',
+      shadowOpacity: 0.3, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      padding:normalizeSize(20),
+      borderRadius:normalizeSize(5),
+      minHeight:normalizeSize(40),
+      minWidth:normalizeSize(176), 
+      backgroundColor:'white',
+      shadowOffset: { height: normalizeSize(4), width: 0}, // IOS
+      elevation: normalizeSize(4), // Android
+      marginBottom:normalizeSize(20),
+      marginTop:normalizeSize(5)
+    },
+    text:{
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+    },
+    shimmerCont:{
+      paddingHorizontal:normalizeSize(30)
+    },
+    shimmer:{
+      height:normalizeSize(20),
+      width:screenWidth-normalizeSize(60),
+      marginBottom:normalizeSize(10),
+      borderRadius:normalizeSize(5),
+    },
+  }
+);
+
+const getScanerStyles = () => 
+  StyleSheet.create({
+    container:{
+      flex:1,
+      width:'100%',
+      backgroundColor:'white',
+      justifyContent:'center'
+    },
+    subtitle:{
+      color:colors.red,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(28),
+      marginHorizontal:normalizeSize(24),
+      marginTop:0,
+    },  
+    name:{
+      color:colors.red,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(28),
+      marginHorizontal:normalizeSize(24),
+    },
+    header:{
+      position:'absolute', 
+      top:normalizeSize(50), 
+      width:'100%'
+    },
+  }
+);
+
+const planStyles = () => 
+  StyleSheet.create({
+    horizontal:{
+      //backgroundColor:'#EFF8FF',
+      marginBottom:normalizeSize(20),
+      marginTop:normalizeSize(10),
+      paddingVertical:normalizeSize(10)
+      //borderWidth:normalizeSize(2)
+    },
+    container:{
+      margin:normalizeSize(5),
+      borderWidth:normalizeSize(1),
+      paddingHorizontal:normalizeSize(10),
+      paddingVertical:normalizeSize(5),
+      borderRadius:normalizeSize(5),
+      borderColor:'#CCC',
+      justifyContent:'center',
+      alignItems:'center',
+      alignContent:'center',
+    },
+    first:{
+      flexDirection:'row',
+      justifyContent:'center',
+      alignItems:'center',
+      alignContent:'center'
+    },
+    second:{
+      flexDirection:'row',
+      justifyContent:'center',
+      alignItems:'center',
+      alignContent:'center'
+    },
+    name:{
+      color:'black',
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+      flex:1
+    },
+    value:{
+      color:colors.buttonBackground,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+      marginEnd:normalizeSize(5),
+      textDecorationLine: 'line-through',
+    },
+    new_value:{
+      color:colors.dialogTitle,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.bold
+    },
+    discountCont:{
+      backgroundColor:'green',
+      paddingHorizontal:normalizeSize(10),
+      paddingVertical:normalizeSize(4),
+      borderRadius:normalizeSize(100),
+      marginStart:normalizeSize(5)
+    },
+    discount:{
+      color:'white',
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular
+    },
+    feturesTitle:{
+      color:colors.dialogTitle,
+      fontSize:normalizeSize(16),
+      fontFamily:fonts.bold,
+      marginHorizontal:normalizeSize(10),
+      marginVertical:normalizeSize(5)
+    },
+    fetures:{
+      backgroundColor:'#FFF',
+      marginHorizontal:normalizeSize(10),
+      borderRadius:normalizeSize(10),
+      padding:normalizeSize(5),
+      shadowColor: 'black',
+      shadowOpacity: 0.3, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      shadowOffset: { height: normalizeSize(4), width: 0}, // IOS
+      elevation: normalizeSize(4), // Android
+    },
+    featureCont:{
+      marginBottom:normalizeSize(5),
+      paddingVertical:normalizeSize(5),
+      flexDirection:'row',
+      flex:1,
+      alignItems:'center'
+    },
+    featureImg:{
+      width:normalizeSize(20),
+      height:normalizeSize(20),
+      tintColor:'green',
+      marginHorizontal:normalizeSize(10)
+    },
+    shimmer:{
+      width: screenWidth-normalizeSize(40),
+      height:normalizeSize(45),
+      marginStart:normalizeSize(20),
+      marginBottom:normalizeSize(10),
+      borderRadius:normalizeSize(5)
+    },
+    subContainer:{
+      backgroundColor:'#FFF',
+      marginHorizontal:normalizeSize(25),
+      borderRadius:normalizeSize(10),
+      padding:normalizeSize(20),
+      shadowColor: 'black',
+      shadowOpacity: 0.3, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      shadowOffset: { height: normalizeSize(4), width: 0}, // IOS
+      elevation: normalizeSize(4), // Android
+    },
+    subTitle:{
+      color:colors.text,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(20)
+    },
+    subName:{
+      color:colors.dialogTitle,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(18),
+      marginBottom:normalizeSize(20)
+    },
+    subText:{
+      color:colors.text,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(16),
+      marginBottom:normalizeSize(5),
+      marginTop:normalizeSize(10)
+    },
+    subValue:{
+      color:colors.dialogTitle,
+      fontFamily:fonts.medium,
+      fontSize:normalizeSize(16),
+      alignSelf:'flex-end'
+    },
+    subCardImg:{
+      width: normalizeSize(25),
+      height: normalizeSize(20),
+      marginEnd:normalizeSize(10),
+    },
+    subButton:{
+      marginTop:normalizeSize(50)
+    },
+    subCanceledCont:{
+      backgroundColor:'#262A36',
+      borderRadius:normalizeSize(10),
+      padding:normalizeSize(20),
+      marginTop:normalizeSize(10)
+    },
+    subCanceledText:{
+       color:'#FFF',
+      fontFamily:fonts.medium,
+      fontSize:normalizeSize(14),
+      marginBottom:normalizeSize(20)
+    },
+    planCont:{
+      backgroundColor:colors.buttonBackground,
+      padding:normalizeSize(10),
+      marginHorizontal:normalizeSize(20),
+      borderRadius:normalizeSize(10),
+      shadowColor: 'black',
+      shadowOpacity: 0.3, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      shadowOffset: { height: normalizeSize(4), width: 0}, // IOS
+      elevation: normalizeSize(4), // Android
+      marginBottom:normalizeSize(10)
+    },
+    planTitle:{
+      fontFamily:fonts.bold,
+      color:colors.text,
+      fontSize:normalizeSize(16),
+      flex:1
+    },
+    planDescription:{
+      fontFamily:fonts.regular,
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      marginTop:normalizeSize(10),
+      textAlign:'center'
+    },
+    free:{
+      color:colors.dialogTitle,
+      textAlign:'center',
+      fontSize:normalizeSize(14),
+      marginHorizontal:normalizeSize(20),
+      marginBottom:normalizeSize(10)
+    },
+    planButton:{
+      backgroundColor:colors.text,
+      borderRadius:normalizeSize(100),
+      justifyContent:'center'
+    },
+    planButtonText:{
+      color:'#FFF',
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.bold,
+      paddingHorizontal:normalizeSize(10),
+      paddingVertical:normalizeSize(5)
+    },
+    pagCont:{
+      backgroundColor:'rgba(255,255,255,0.9)', 
+      flexDirection:'row', 
+      justifyContent:'center', 
+      position: 'absolute',
+      bottom:0, 
+      paddingBottom:normalizeSize(20),
+      width:'100%',
+    },
+    pag:{
+      width:normalizeSize(15),
+      height:normalizeSize(15),
+      borderRadius:normalizeSize(15),
+      marginHorizontal:normalizeSize(3),
+      marginVertical:normalizeSize(5),
+      backgroundColor:colors.dialogTitle
+    },
+    bestOption:{
+      color:colors.dialogTitle,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.bold,
+      textAlign:'center'
+    }
+  }
+);
+
+const boxStyles = () => 
+  StyleSheet.create({
+    card:{
+      shadowColor: 'black',
+      shadowOpacity: 0.2, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      paddingVertical:normalizeSize(0),
+      borderRadius:normalizeSize(5),
+      backgroundColor:'white',
+      shadowOffset: { height: normalizeSize(2), width: 0}, // IOS
+      elevation: normalizeSize(4), // Android
+      marginHorizontal:normalizeSize(16),
+      marginBottom:normalizeSize(10),
+      marginTop:normalizeSize(5),
+      paddingTop:normalizeSize(20),
+      paddingBottom:normalizeSize(10),
+    },
+    label:{
+      color:colors.dialogTitle,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(14),
+    },
+    button:{
+      marginBottom:normalizeSize(20),
+      marginTop:normalizeSize(10),
+    },
+    text:{
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+    },
+    textBold:{
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.bold,
+      marginTop:normalizeSize(10),
+      marginBottom:normalizeSize(5)
+    },
+    methodCont:{
+      backgroundColor:'rgba(247, 169, 40, 0.1)',
+      paddingHorizontal:normalizeSize(18),
+      paddingVertical:normalizeSize(7),
+      shadowColor:'rgba(247, 169, 40, 1)',
+      shadowOpacity: 0.3, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      shadowOffset: { height: normalizeSize(4), width: 0}, // IOS
+      elevation: normalizeSize(4), // Android
+      borderRadius:normalizeSize(5),
+      marginStart:normalizeSize(10)
+    },
+    methodText:{
+      color:colors.dialogTitle,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+    },
+    form:{
+      paddingHorizontal:normalizeSize(20)
+    },
+    methodScroll:{
+      paddingTop:normalizeSize(5),
+      paddingBottom:normalizeSize(10)
+    },
+    lineCont:{
+      flexDirection:'row',
+      marginTop:normalizeSize(5)
+    },
+    shimmer:{
+      width:screenWidth-normalizeSize(72),
+      height:normalizeSize(20),
+      borderRadius:normalizeSize(5),
+      marginBottom:normalizeSize(10),
+      marginStart:normalizeSize(20)
+    },
+    warningCont:{
+      backgroundColor:'#FF220509',
+      padding:normalizeSize(10),
+      borderRadius:normalizeSize(5)
+    },
+    warning:{
+      width:normalizeSize(50),
+      height:normalizeSize(50),
+      alignSelf:'center'
+    }
+  }
+);
+
+const newSaleStyles = () => 
+  StyleSheet.create({
+    listCont:{
+      marginHorizontal:normalizeSize(16),
+      marginTop:normalizeSize(10),
+      borderRadius:normalizeSize(5),
+      shadowColor: 'black',
+      shadowOpacity: 0.15, // IOS
+      shadowRadius: normalizeSize(3), //IOS
+      backgroundColor:'white',
+      padding:normalizeSize(10),
+      shadowOffset: { height: normalizeSize(4), width: 0}, // IOS
+      elevation: normalizeSize(10), // Android
+    },
+    listText:{
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.medium,
+      color:colors.text
+    },
+    seeVariations:{
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.medium,
+      color:colors.carmine,
+      alignSelf:'flex-end'
+    },
+    label:{
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+      color:colors.dialogTitle
+    },
+    noresult:{
+      color:colors.text,
+      fontSize:normalizeSize(20),
+      fontFamily:fonts.medium,
+      textAlign:'center',
+      marginHorizontal:normalizeSize(20),
+      marginTop:normalizeSize(100)
+    },
+    shimmerCont:{
+      marginTop:normalizeSize(30)
+    },
+    noLabel:{
+      color:colors.dialogTitle,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(20),
+      marginHorizontal:normalizeSize(25),
+      marginTop:normalizeSize(40),
+      marginBottom:normalizeSize(10)
+    },
+    noText:{
+      color:colors.dialogText,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(14),
+      marginHorizontal:normalizeSize(25),
+      marginBottom:normalizeSize(40)
+    },
+    shimmer:{
+      height:normalizeSize(40),
+      width:screenWidth-normalizeSize(32),
+      marginStart:normalizeSize(16),
+      marginBottom:normalizeSize(12),
+      borderRadius:normalizeSize(5)
+    },
+    productItem:{
+      marginBottom:normalizeSize(10)
+    },
+    bottomSheetContainer:{
+      borderTopEndRadius:normalizeSize(10),
+      borderTopStartRadius:normalizeSize(10),
+    },
+    bottomSheetHeigth:screenHeight - normalizeSize(50),
+    bottomSafe:{
+      position:'absolute', 
+      bottom:normalizeSize(10), 
+      width:'100%',backgroundColor:'#FFFFFFAA'
+    },
+    viewSale:{ 
+      padding:normalizeSize(10),
+      marginHorizontal:normalizeSize(10),
+      marginTop:normalizeSize(10),
+      borderRadius:normalizeSize(5),
+      backgroundColor:colors.buttonBackground,
+    },
+    totalLabel:{
+      color:colors.text,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(14),
+      textAlign:'center'
+    },
+    totalValue:{
+      color:colors.text,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(20),
+    },
+    description:{
+      color:colors.text,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(14),
+      textAlign:'center'
+    },
+    addCustomerCont:{
+      backgroundColor:'#f3f4f9',
+      flexDirection:'row',
+      marginHorizontal:normalizeSize(15),
+      padding:normalizeSize(15),
+      borderRadius:normalizeSize(5)
+    },
+    addCustomerText:{
+      color:colors.text,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(14),
+      flex:1
+    },
+    addCustomerArrow:{
+      width:normalizeSize(16),
+      height:normalizeSize(16),
+      tintColor:colors.text
+    },
+    closeCont:{
+      position:'absolute',
+      left:normalizeSize(0),
+      top:normalizeSize(10),
+    },
+    closeImg:{
+      width:normalizeSize(50),
+      height:normalizeSize(50),
+    },
+    title:{
+      color:colors.text,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(15),
+      marginBottom:normalizeSize(20),
+      textAlign:'center',
+      alignSelf:'center'
+    },
+    noProductMsg:{
+      flex:1,
+      justifyContent:'center'
+    },
+    noProductText:{
+      color:colors.text,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(16),
+      marginHorizontal:normalizeSize(16),
+      textAlign:'center',
+      alignSelf:'center'
+    },
+    value:{
+      color:colors.dialogText,
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(14),
+    },
+    valueBold:{
+      color:colors.dialogText,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(14),
+    },
+    dataCont:{
+      marginBottom:normalizeSize(10)
+    },
+    customerDialog:{
+      paddingTop:normalizeSize(25),
+      paddingHorizontal:normalizeSize(16),
+      height:'auto'
+    },
+    removeCustomerCont:{
+      paddingHorizontal:normalizeSize(10),
+      paddingVertical:normalizeSize(20),
+      alignSelf:'flex-end'
+    },
+    removeCustomerText:{
+      color:colors.label,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(14),
+    },
+    otherPayCont:{
+      alignSelf:'center',
+      paddingHorizontal:normalizeSize(20),
+      flex:1
+    },
+    otherPayTxt:{
+      color:colors.label,
+      fontFamily:fonts.bold,
+      fontSize:normalizeSize(14),
+    },
+    button:{
+      flex:1, 
+      minWidth:'auto',
+      marginEnd:normalizeSize(20)
+    },
+    color:colors.buttonBackground,
+    distanceToEdge:{
+      vertical:normalizeSize(110), 
+      horizontal:normalizeSize(30)
+    },
+    textOne:{
+      fontSize:18,
+      fontFamily:fonts.medium,
+      color:'white'
+    },
+    safe:{
+      flexDirection:'row',
+      alignItems:'center'
+    },
+    search:{
+      flex:1
+    },
+    qrScanCont:{
+      marginEnd:normalizeSize(10),
+    },
+    qrScan:{
+      width:normalizeSize(35),
+      height:normalizeSize(35),
+      tintColor:colors.text,
+      backgroundColor:'#FFFFFF88'
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      marginHorizontal: normalizeSize(16),
+      marginTop: normalizeSize(10),
+      backgroundColor: '#EBEBEB',
+      borderRadius: normalizeSize(8),
+      padding: normalizeSize(4),
+      shadowColor: 'black',
+      shadowOpacity: 0.1,
+      shadowRadius: normalizeSize(2),
+      shadowOffset: { height: normalizeSize(1), width: 0},
+      elevation: normalizeSize(2),
+    },
+    tabButton: {
+      flex: 1,
+      paddingVertical: normalizeSize(8),
+      borderRadius: normalizeSize(6),
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    tabButtonActive: {
+      backgroundColor: 'white',
+      shadowColor: 'black',
+      shadowOpacity: 0.1,
+      shadowRadius: normalizeSize(2),
+      shadowOffset: { height: normalizeSize(1), width: 0},
+      elevation: normalizeSize(2),
+    },
+    tabText: {
+      fontSize: normalizeSize(14),
+      fontFamily: fonts.medium,
+      color: colors.text,
+      opacity: 0.6
+    },
+    tabTextActive: {
+      opacity: 1,
+      fontFamily: fonts.semiBold,
+      color: colors.buttonBackground
+    },
+    reachCont:{
+      height:'100%', 
+      justifyContent:'center',
+      paddingBottom:normalizeSize(100),
+    },
+    reachText:{
+      color:colors.text,
+      fontSize:normalizeSize(16),
+      marginHorizontal:normalizeSize(20),
+      marginBottom:normalizeSize(20),
+      fontFamily:fonts.regular,
+      textAlign:'center'
+    },
+    RBSafe:{
+      paddingBottom:normalizeSize(20)
+    }
+  }
+);
+
+const creditCardStyles = () => 
+  StyleSheet.create({
+    errorText:{
+      color:colors.error,
+      fontSize:normalizeSize(12),
+      fontFamily:fonts.regular,
+      marginStart:normalizeSize(24),
+      marginEnd:normalizeSize(24),
+      marginTop:normalizeSize(10)
+    },
+     creditCardInput:{
+      fontFamily:fonts.regular,
+      fontSize:normalizeSize(14),
+      color:colors.inputTextColor 
+    },
+    creditCardInputCont:{
+      borderBottomColor:colors.inputLineActive,
+      borderBottomWidth:normalizeSize(1)
+    },
+    button:{
+      marginHorizontal:normalizeSize(16),
+      marginBottom:normalizeSize(20)
+    },
+    input:{
+      marginHorizontal:normalizeSize(16),
+      marginTop:normalizeSize(10)
+    },
+    payuText:{
+      color:colors.text,
+      fontSize:normalizeSize(16),
+      textAlign:'center',
+      fontFamily:fonts.bold,
+    },
+    payuImg:{
+      resizeMode:'contain',
+      height:normalizeSize(35),
+      marginBottom:normalizeSize(10),
+      alignSelf:'center'
+    },
+    linkCont:{
+      alignSelf:'flex-end',
+      padding:normalizeSize(10)
+    },
+    linkText:{
+      color:colors.dialogTitle,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.medium,
+      textDecorationLine:'underline'
+    },
+    cardCont:{
+      flexDirection:'row',
+      alignItems:'center',
+      marginHorizontal:normalizeSize(20),
+      marginBottom:normalizeSize(7),
+    },
+    card:{
+      width:normalizeSize(30),
+      height:normalizeSize(30),
+      marginEnd:normalizeSize(10),
+      resizeMode:'contain'
+    },
+    cardText:{
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.regular,
+    },
+    methodTitle:{
+      color:colors.text,
+      fontSize:normalizeSize(14),
+      fontFamily:fonts.bold,
+      marginHorizontal:normalizeSize(20),
+      marginBottom:normalizeSize(10)
+    }
+  }
+);
+
+const getProductsStyles = () => 
+  StyleSheet.create({
+    loaderContainer:{
+      //marginBottom:normalizeSize(150),
+      marginTop:normalizeSize(10),
+    },
+    noresult:{
+      color:colors.text,
+      fontSize:normalizeSize(20),
+      fontFamily:fonts.medium,
+      textAlign:'center',
+      marginHorizontal:normalizeSize(20),
+      marginBottom:normalizeSize(100),
+    },
+    shimmerCont:{
+      marginTop:normalizeSize(10)
+    },
+    shimmer:{
+      height:normalizeSize(65),
+      width:screenWidth-normalizeSize(40),
+      marginStart:normalizeSize(20),
+      marginBottom:normalizeSize(12),
+      borderRadius:normalizeSize(5)
+    },
+    color:colors.buttonBackground,
+    distanceToEdge:{
+      vertical:normalizeSize(50), 
+      horizontal:normalizeSize(30)
+    },
+    textOne:{
+      fontSize:normalizeSize(18),
+      fontFamily:fonts.medium,
+      color:'white'
+    },
+  }
+);
+
+export {
+  getSplashStyles,
+  getLoginStyles,
+  getBalanceStyles,
+  getProviderStyles,
+  getBuyDetailsStyles,
+  getInventoryStyles,
+  getHomeStyles,
+  getTermsStyles,
+  getFormStyles,
+  getOrdersStyles,
+  getScanerStyles,
+  planStyles,
+  boxStyles,
+  newSaleStyles,
+  creditCardStyles,
+  getProductsStyles
+}
