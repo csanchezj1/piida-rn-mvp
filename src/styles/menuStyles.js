@@ -11,7 +11,7 @@ const getBottomStyles = () =>
       backgroundColor:'#FFF', 
       paddingBottom:normalizeSize(25)  
     },
-    container:{ 
+    container:{
       backgroundColor:'#FFF',
       shadowColor: 'black',
       shadowOpacity: 0.1, // IOS
@@ -22,8 +22,7 @@ const getBottomStyles = () =>
       paddingVertical:normalizeSize(10),
       borderRadius:normalizeSize(5),
       justifyContent:'space-around',
-      marginStart:normalizeSize(10),
-      width:screenWidth-normalizeSize(20)-normalizeSize(55),
+      marginHorizontal:normalizeSize(10),
     },
     color:colors.label,
     textOne:{
@@ -31,9 +30,16 @@ const getBottomStyles = () =>
       fontFamily:fonts.medium,
       color:'white'
     },
+    // FAB anclado arriba del bottom-tab (no a su altura) para evitar
+    // solapamiento con los tabs en tablet vertical, donde el ancho es
+    // chico y el botón tapaba "Movimientos"/"Inventario".
+    // Valor raw (sin normalizeSize) — el alto del bottom-tab YA escala,
+    // así que normalizar el offset hace que ambos crezcan en proporción
+    // y el FAB sigue tapando el tab. 100px raw = arriba del tab en
+    // cualquier densidad.
     distanceToEdge:{
-      vertical:normalizeSize(30), 
-      horizontal:normalizeSize(10)
+      vertical:100,
+      horizontal:20
     },
     itemContainer:{
       flex: 1,

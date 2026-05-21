@@ -21,6 +21,16 @@ const requireBluetoothModule = () => {
 // al codear en runtime.
 const DRAWER_BYTES_B64 = 'G3AAGfo=';
 
+// Keep-alive: ESC @ (0x1B 0x40) — inicializa la impresora. NO imprime ni
+// mueve papel; solo resetea modos. Se manda cada minuto para que el firmware
+// del clon iSH58 no entre en sleep (estado del que solo sale apagándola y
+// prendiéndola de nuevo).
+const KEEPALIVE_BYTES_B64 = 'G0A=';
+
+// Mientras hay un trabajo de impresión real en curso, el tick de keep-alive
+// se salta para no escribir en el socket SPP al mismo tiempo.
+let printJobInProgress = false;
+
 const requestBluetoothPermissions = async () => {
   if (Platform.OS !== 'android') return true;
 
@@ -219,6 +229,26 @@ export const connectToPrinter = async (address) => {
   );
 };
 
+// Conexión liviana para el keep-alive: si ya está conectado usa ese socket;
+// si no, hace UN solo intento de connect (sin los 5 reintentos de
+// connectToPrinter, que tardarían ~13s y no tienen sentido en un ping
+// periódico). Devuelve true/false en vez de lanzar.
+const connectLight = async (address) => {
+  const {BluetoothManager} = requireBluetoothModule();
+  try {
+    const raw = await BluetoothManager.getConnectedDevice();
+    if (parseDeviceList(raw).some((d) => d.address === address)) return true;
+  } catch (e) {
+    // seguimos al connect
+  }
+  try {
+    await BluetoothManager.connect(address);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 // Reconectamos siempre. La optimización de "skip si getConnectedDevice
 // matchea" se removió porque la lib no verifica el socket real — solo el
 // estado interno, que puede quedar stale tras un timeout/idle y hace que
@@ -234,11 +264,16 @@ const ensureConnected = async () => {
 };
 
 export const openCashDrawer = async () => {
-  const {BluetoothEscposPrinter} = requireBluetoothModule();
-  await ensureConnected();
-  // writeRawBase64 está parcheado nativamente — manda bytes raw vía el socket
-  // SPP abierto, único camino para el comando ESC p (no expuesto por la lib).
-  await BluetoothEscposPrinter.writeRawBase64(DRAWER_BYTES_B64);
+  printJobInProgress = true;
+  try {
+    const {BluetoothEscposPrinter} = requireBluetoothModule();
+    await ensureConnected();
+    // writeRawBase64 está parcheado nativamente — manda bytes raw vía el socket
+    // SPP abierto, único camino para el comando ESC p (no expuesto por la lib).
+    await BluetoothEscposPrinter.writeRawBase64(DRAWER_BYTES_B64);
+  } finally {
+    printJobInProgress = false;
+  }
 };
 
 // Colapsa segmentos consecutivos de texto/separator/feed SIN options en un
@@ -271,39 +306,49 @@ const collapseSegments = (segments) => {
 };
 
 export const printReceipt = async (saleData, {openDrawer = false} = {}) => {
-  const {BluetoothEscposPrinter} = requireBluetoothModule();
-  await ensureConnected();
+  printJobInProgress = true;
+  try {
+    const {BluetoothEscposPrinter} = requireBluetoothModule();
+    await ensureConnected();
 
-  // Cajón primero, aislado: si después el papel falla, el pulso ya salió.
-  if (openDrawer) {
-    try {
-      await BluetoothEscposPrinter.writeRawBase64(DRAWER_BYTES_B64);
-    } catch (e) {
-      console.log('[printer] openDrawer falló:', e?.message || e);
+    // Cajón primero, aislado: si después el papel falla, el pulso ya salió.
+    if (openDrawer) {
+      try {
+        await BluetoothEscposPrinter.writeRawBase64(DRAWER_BYTES_B64);
+      } catch (e) {
+        console.log('[printer] openDrawer falló:', e?.message || e);
+      }
     }
-  }
 
-  const segments = collapseSegments(buildReceiptCommands(saleData));
-  for (const seg of segments) {
-    await runSegment(BluetoothEscposPrinter, seg);
+    const segments = collapseSegments(buildReceiptCommands(saleData));
+    for (const seg of segments) {
+      await runSegment(BluetoothEscposPrinter, seg);
+    }
+  } finally {
+    printJobInProgress = false;
   }
 };
 
 export const printTestPage = async () => {
-  const {BluetoothEscposPrinter, ALIGN} = requireBluetoothModule();
-  await ensureConnected();
-  await BluetoothEscposPrinter.printerInit();
-  await BluetoothEscposPrinter.printerAlign(ALIGN.CENTER);
-  await BluetoothEscposPrinter.printText('PIIDA\n\r', {
-    encoding: 'GBK',
-    codepage: 0,
-    widthtimes: 1,
-    heigthtimes: 1,
-    fonttype: 1,
-  });
-  await BluetoothEscposPrinter.printText('Pagina de prueba\n\r', {});
-  await BluetoothEscposPrinter.printText(`${new Date().toLocaleString()}\n\r`, {});
-  await BluetoothEscposPrinter.printText('\n\r\n\r\n\r', {});
+  printJobInProgress = true;
+  try {
+    const {BluetoothEscposPrinter, ALIGN} = requireBluetoothModule();
+    await ensureConnected();
+    await BluetoothEscposPrinter.printerInit();
+    await BluetoothEscposPrinter.printerAlign(ALIGN.CENTER);
+    await BluetoothEscposPrinter.printText('PIIDA\n\r', {
+      encoding: 'GBK',
+      codepage: 0,
+      widthtimes: 1,
+      heigthtimes: 1,
+      fonttype: 1,
+    });
+    await BluetoothEscposPrinter.printText('Pagina de prueba\n\r', {});
+    await BluetoothEscposPrinter.printText(`${new Date().toLocaleString()}\n\r`, {});
+    await BluetoothEscposPrinter.printText('\n\r\n\r\n\r', {});
+  } finally {
+    printJobInProgress = false;
+  }
 };
 
 const runSegment = async (BluetoothEscposPrinter, seg) => {
@@ -341,4 +386,64 @@ const runSegment = async (BluetoothEscposPrinter, seg) => {
     default:
       break;
   }
+};
+
+// ─── Keep-alive ───────────────────────────────────────────────
+// Mantiene despierta la impresora clon: cada 60s manda un ESC @ por el
+// socket SPP. Corre solo con la app en primer plano (AppState 'active') y
+// solo si hay impresora configurada. Best-effort: si falla, silencioso.
+const KEEPALIVE_INTERVAL_MS = 60000;
+let keepAliveTimer = null;
+let keepAliveAppStateSub = null;
+
+const runKeepAliveTick = async () => {
+  if (printJobInProgress) return; // no pisar un print real en curso
+  try {
+    const {address} = await getPrinterPrefs();
+    if (!address) return; // sin impresora configurada → nada que hacer
+    const ok = await connectLight(address);
+    if (!ok) return;
+    const {BluetoothEscposPrinter} = requireBluetoothModule();
+    await BluetoothEscposPrinter.writeRawBase64(KEEPALIVE_BYTES_B64);
+  } catch (e) {
+    // best-effort — el próximo print hace su propio retry/reconexión.
+  }
+};
+
+export const startPrinterKeepAlive = () => {
+  if (!PRINTING_IS_AVAILABLE) return;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const {AppState} = require('react-native');
+
+  const startTimer = () => {
+    if (keepAliveTimer) return;
+    keepAliveTimer = setInterval(runKeepAliveTick, KEEPALIVE_INTERVAL_MS);
+  };
+  const stopTimer = () => {
+    if (keepAliveTimer) {
+      clearInterval(keepAliveTimer);
+      keepAliveTimer = null;
+    }
+  };
+
+  // Arranca ya si la app está activa; si no, esperamos al evento 'active'.
+  if (AppState.currentState === 'active') startTimer();
+
+  if (!keepAliveAppStateSub) {
+    keepAliveAppStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') startTimer();
+      else stopTimer();
+    });
+  }
+};
+
+export const stopPrinterKeepAlive = () => {
+  if (keepAliveTimer) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
+  if (keepAliveAppStateSub && typeof keepAliveAppStateSub.remove === 'function') {
+    keepAliveAppStateSub.remove();
+  }
+  keepAliveAppStateSub = null;
 };

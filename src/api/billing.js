@@ -92,6 +92,23 @@ const Billing = {
       method: 'DELETE',
       headers: headers(email, password),
     }),
+
+  // Crea un payment intent PENDING (transferencia / efectivo). El superadmin
+  // lo aprueba después desde el panel y se dispara push al cliente.
+  createPaymentIntent: ({ email, password, planSlug, amount, method, reference, notes }) =>
+    request({
+      url: 'billing/payment-intents',
+      method: 'POST',
+      headers: headers(email, password),
+      data: { planSlug, amount, method, reference, notes },
+    }),
+
+  listPaymentIntents: ({ email, password }) =>
+    request({
+      url: 'billing/payment-intents/me',
+      method: 'GET',
+      headers: headers(email, password),
+    }),
 };
 
 export default Billing;

@@ -17,6 +17,7 @@ import TextDate from "./textDate";
 import QRScanner from "./qrScanner";
 import ProductItem from "./productItem";
 import Keypad from "./Keypad";
+import LimitBanner from "./limitBanner";
 
 export {
 	ActionButton,
@@ -37,5 +38,6 @@ export {
   TextDate,
   QRScanner,
   ProductItem,
-  Keypad
+  Keypad,
+  LimitBanner
 };

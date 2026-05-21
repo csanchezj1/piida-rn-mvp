@@ -42,6 +42,7 @@ import ProductsScreen from './ProductsScreen/container';
 import PrinterSettingsScreen from './PrinterSettingsScreen/container';
 import BillingScreen from './BillingScreen/container';
 import VentaLibreScreen from './VentaLibreScreen/container';
+import AdvancedReportsScreen from './AdvancedReportsScreen';
 
 export {
   Splashscreen,
@@ -87,5 +88,6 @@ export {
   ProductsScreen,
   PrinterSettingsScreen,
   BillingScreen,
-  VentaLibreScreen
+  VentaLibreScreen,
+  AdvancedReportsScreen
 };

@@ -23,7 +23,8 @@ import {
   INVENTORY_TOTAL,
   HOME_TOTAL,
   COMMON_LOGIN,
-  REMISSION_INVOICE_CHANGE
+  REMISSION_INVOICE_CHANGE,
+  NEW_SALE_CLEAR
 } from '../../../utils/constants';
 
 validate.options = {
@@ -320,33 +321,16 @@ export const confirmOrder = ({
               isCashSale: hasCashPayment,
             });
 
+            // Tras finalizar la venta volvemos a VentaLibre con el carrito
+            // limpio para que el cajero pueda iniciar la próxima venta sin
+            // pasos extra. El detalle de la venta se consulta desde
+            // Órdenes de venta → Historial si hace falta.
+            dispatch({type: NEW_SALE_CLEAR});
             navigation.reset({
-              index: 0,
+              index: 1,
               routes: [
                 {name: 'BottomMenu'},
-                {name: 'BuyDetails', params:{
-                  details:{
-                    customer:customer ? customer.label: '',
-                    movementType:response.title,
-                    //paymentType:payment ? payment.label : null,
-                    value:
-                      orderPayment.value == 45 ? //pago parcial
-                        sumTotal :
-                      orderPayment.value == 44 ? // pago completo
-                        total : '0',
-                    paid:
-                      orderPayment.value == 45 ? //pago parcial
-                        sumTotal :
-                      orderPayment.value == 44 ? // pago completo
-                        total : '0',
-                    total,
-                    order:response.order,
-                    movement_id:response.movement_id,
-                    orderConsecutive:response.consecutive,
-                    movement:response.movement,
-                    date:response.date,              
-                  }}
-                },
+                {name: 'VentaLibre'},
               ],
             })
           })

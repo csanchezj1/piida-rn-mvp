@@ -4,12 +4,13 @@ import {
   RefreshControl,
   ScrollView,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { getBalanceStyles } from '../../../styles/screenStyles';
-import { colors, fonts } from '../../../styles/basicStyles';
+import { colors, fonts, normalizeSize } from '../../../styles/basicStyles';
 import { registerEventScreenMounted } from '../../../utils/analytics';
 import { MovementItem, Shimmer } from '../../../components';
 
@@ -23,7 +24,63 @@ class BalanceScreen extends Component {
     cancelReason: '',
     cancelError: null,
     cancelling: false,
+    // F4.12 libro mayor: filtro de tipo client-side.
+    filterType: 'all', // 'all' | 'income' | 'expense'
   };
+
+  // Filtra la lista agrupada según el tipo elegido. Un movimiento es
+  // 'expense' si item.movement === 'expense'; cualquier otra cosa es ingreso.
+  getFilteredList() {
+    const { list } = this.props;
+    const { filterType } = this.state;
+    if (!list || filterType === 'all') return list;
+    return list
+      .map((group) => ({
+        ...group,
+        children: group.children.filter((item) =>
+          filterType === 'expense'
+            ? item.movement === 'expense'
+            : item.movement !== 'expense',
+        ),
+      }))
+      .filter((group) => group.children.length > 0);
+  }
+
+  renderTypeFilter() {
+    const { filterType } = this.state;
+    const opts = [
+      { id: 'all', label: 'Todos' },
+      { id: 'income', label: 'Ingresos' },
+      { id: 'expense', label: 'Gastos' },
+    ];
+    return (
+      <View style={{ flexDirection: 'row', paddingHorizontal: normalizeSize(16), paddingVertical: normalizeSize(8), gap: normalizeSize(8) }}>
+        {opts.map((o) => {
+          const active = filterType === o.id;
+          return (
+            <TouchableOpacity
+              key={o.id}
+              activeOpacity={0.8}
+              onPress={() => this.setState({ filterType: o.id })}
+              style={{
+                paddingHorizontal: normalizeSize(14),
+                paddingVertical: normalizeSize(6),
+                borderRadius: normalizeSize(16),
+                backgroundColor: active ? colors.buttonBackground : '#F0F0F0',
+              }}>
+              <Text style={{
+                fontFamily: active ? fonts.bold : fonts.regular,
+                fontSize: normalizeSize(13),
+                color: active ? '#FFFFFF' : colors.text,
+              }}>
+                {o.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  }
 
   componentDidMount() {
     this.props.actions.getMovements(this.props.user.branch_office, true);
@@ -144,6 +201,8 @@ class BalanceScreen extends Component {
           </View>
         </View>
 
+        {this.props.list && this.props.list.length > 0 && this.renderTypeFilter()}
+
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
@@ -173,20 +232,32 @@ class BalanceScreen extends Component {
         >
           {this.props.list ? (
             this.props.list.length > 0 ? (
-              <>
-                {this.props.list.map((group, i) => (
-                  <View key={i}>
-                    <Text style={this.styles.date}>{group.date}</Text>
-                    {group.children.map((item, index) => this.renderItem(item, index))}
-                  </View>
-                ))}
+              (() => {
+                const filtered = this.getFilteredList() || [];
+                if (filtered.length === 0) {
+                  return (
+                    <Text style={this.styles.noresult}>
+                      No hay movimientos de este tipo
+                    </Text>
+                  );
+                }
+                return (
+                  <>
+                    {filtered.map((group, i) => (
+                      <View key={i}>
+                        <Text style={this.styles.date}>{group.date}</Text>
+                        {group.children.map((item, index) => this.renderItem(item, index))}
+                      </View>
+                    ))}
 
-                <View style={this.styles.loaderContainer}>
-                  {this.props.showLoader && (
-                    <ActivityIndicator size="large" color={'red'} />
-                  )}
-                </View>
-              </>
+                    <View style={this.styles.loaderContainer}>
+                      {this.props.showLoader && (
+                        <ActivityIndicator size="large" color={'red'} />
+                      )}
+                    </View>
+                  </>
+                );
+              })()
             ) : (
               <Text style={this.styles.noresult}>
                 Aún no tienes movimientos registrados

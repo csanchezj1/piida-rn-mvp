@@ -128,11 +128,20 @@ function BottomTabs({otherProps, navigation}) {
       textElevation:0
     },
     {
+      // Gating real por feature flag del plan: solo aparece habilitado si
+      // el plan actual tiene `branchTransfer: true` en sus features. Plan
+      // Gratis no lo tiene → cae a 'notransfer' que muestra dialog upgrade.
+      // Fallback a `subscription == 83` por si plan_features no llegó (apps
+      // viejas pre-deploy).
       text: "Trasladar de inventario",
       color:colors.inputLineActive,
       textBackground:'transparent',
       icon: require('../../assets/images/ic_sync_alt.png'),
-      name: otherProps.user.subscription == 83 ? "Transfer" : 'notransfer',
+      name: (Array.isArray(otherProps.user.plan_features)
+        ? otherProps.user.plan_features.includes('branchTransfer')
+        : otherProps.user.subscription == 83)
+        ? "Transfer"
+        : 'notransfer',
       textStyle:styles.textOne,
       shadow:{shadowOpacity: 0},
       textElevation:0

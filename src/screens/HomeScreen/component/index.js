@@ -5,7 +5,7 @@ import { NumericFormat } from 'react-number-format';
 import Movements from '../../../api/movements';
 import {getHomeStyles} from '../../../styles/screenStyles';
 import {registerEventScreenMounted} from '../../../utils/analytics';
-import { CircleChart, SelectList, Shimmer } from '../../../components';
+import { CircleChart, SelectList, Shimmer, LimitBanner } from '../../../components';
 import { colors, fonts, normalizeSize } from '../../../styles/basicStyles';
 
 const TOP_PRODUCTS_VISIBLE = 5;
@@ -264,10 +264,48 @@ class HomeScreen extends Component {
       )
     )
   }
+  // Banner de estado de suscripción. Se muestra solo si la empresa está en
+  // mora, suspendida o canceló — no en al_dia/pendiente para no estorbar.
+  // El CTA navega a BillingScreen donde el admin puede pagar o reactivar.
+  renderSubscriptionAlert() {
+    const status = this.props.user?.subscription_status;
+    if (!status || status === 'al_dia' || status === 'pendiente') return null;
+
+    const role = this.props.user?.roles?.[0];
+    const isAdmin = role === 'administrator' || role === 'superadmin';
+
+    let title, message, variant;
+    if (status === 'mora') {
+      title = 'Tu suscripción está en mora';
+      message = 'Tu plan venció. Regulariza el pago para mantener las funciones premium activas.';
+      variant = 'warning';
+    } else if (status === 'suspendido_plan') {
+      title = 'Tu plan está suspendido';
+      message = 'Para reactivar tus funciones, ponte al día con el pago de tu suscripción.';
+      variant = 'error';
+    } else if (status === 'cancelado') {
+      title = 'Suscripción cancelada';
+      message = 'Tu suscripción fue cancelada. Reactivá para seguir disfrutando del plan.';
+      variant = 'error';
+    } else if (status === 'sin_suscripcion') {
+      return null;
+    }
+
+    return (
+      <LimitBanner
+        title={title}
+        message={message}
+        ctaLabel={isAdmin ? 'Regularizar pago' : undefined}
+        onPress={isAdmin ? () => this.props.navigation.navigate('Billing') : undefined}
+        variant={variant}
+      />
+    );
+  }
+
   render() {
     return (
       <>
-      <StatusBar 
+      <StatusBar
         barStyle={Platform.OS == 'ios' ? "dark-content" : 'light-content'}
         backgroundColor={colors.carmine}/>
       <ScrollView
@@ -282,6 +320,7 @@ class HomeScreen extends Component {
             progressViewOffset={0}
           />
         }>
+        {this.renderSubscriptionAlert()}
         {this.props.total ? (
           <View>
             {this.props.user.features.includes('hide_statistics_collaborator') ? (
@@ -295,6 +334,22 @@ class HomeScreen extends Component {
             {!Array.isArray(this.props.total.inventory) > 0 && (
               this.renderInventoryCard()
             )}
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => this.props.navigation.navigate('AdvancedReports')}
+              style={{
+                marginHorizontal: normalizeSize(16),
+                marginTop: normalizeSize(16),
+                backgroundColor: colors.buttonBackground,
+                borderRadius: normalizeSize(12),
+                paddingVertical: normalizeSize(14),
+                alignItems: 'center',
+              }}>
+              <Text style={{color: '#FFFFFF', fontFamily: fonts.bold, fontSize: normalizeSize(15)}}>
+                Ver reportes avanzados
+              </Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View 

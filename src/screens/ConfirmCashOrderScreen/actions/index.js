@@ -7,6 +7,8 @@ import Login from '../../../api/login';
 import {registerSale} from '../../../utils/analytics';
 import {triggerAutoPrintAfterSale} from '../../../utils/printing/triggerAutoPrint';
 import {buildReceiptFromCashSale} from './receipt';
+import {getCashPaymentMethodId} from '../../../utils/paymentMethods';
+import {buildErrorDialog} from '../../../utils/planLimitDialog';
 
 import {
   CONFIRM_CASH_ORDER_CONFIRM_VALUE_CHANGE,
@@ -19,7 +21,8 @@ import {
   INVENTORY_TOTAL,
   HOME_TOTAL,
   COMMON_LOGIN,
-  CONFIRM_CASH_INVOICE
+  CONFIRM_CASH_INVOICE,
+  NEW_SALE_CLEAR
 } from '../../../utils/constants';
 
 validate.options = {
@@ -62,7 +65,7 @@ export const valueChange = (code) => {
 export const confirmOrder = ({
   navigation
 }) => { 
-  return (dispatch, getState) => { 
+  return (dispatch, getState) => {
     const {user} = getState().userData;
     const {value, invoice} = getState().confirmCahsOrderData;
     const {product, total, customer} = getState().newSaleData;
@@ -78,12 +81,23 @@ export const confirmOrder = ({
         },
       },
     };
-   
+
     const errors = validate({ value }, constraints);
     if (errors) {
       dispatch({ type: CONFIRM_CASH_ORDER_FORM_FAIL, payload: errors });
     }
-    else{ 
+    else{
+      const cashMethodId = getCashPaymentMethodId(getState());
+      if (cashMethodId == null) {
+        dispatch({
+          type: DIALOG_SHOW,
+          payload: {
+            title: 'Error',
+            message: 'No se pudo identificar el método de pago "Efectivo". Cierra sesión y vuelve a entrar.',
+          },
+        });
+        return;
+      }
       dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: true });
       Token.getToken()
       .then(token => {
@@ -94,11 +108,11 @@ export const confirmOrder = ({
           customerId:customer ? customer.nid : null,
           product,
           observations:'',
-          invoice:invoice ? invoice == true ? '1':'0' : '0', 
+          invoice:invoice ? invoice == true ? '1':'0' : '0',
           paymentMethods:[{
             type:{
               label:'Efectivo',
-              value:7
+              value:cashMethodId
             },
             value:total
           }],
@@ -124,57 +138,29 @@ export const confirmOrder = ({
             isCashSale: true,
           });
 
+          // Tras finalizar la venta volvemos a VentaLibre con el carrito
+          // limpio para que el cajero pueda iniciar la próxima venta sin
+          // pasos extra. El detalle de la venta se consulta desde
+          // Órdenes de venta → Historial si hace falta.
+          dispatch({type: NEW_SALE_CLEAR});
           navigation.reset({
-            index: 0,
+            index: 1,
             routes: [
               {name: 'BottomMenu'},
-              {name: 'BuyDetails', params:{
-                details:{
-                  customer:customer ? customer.label: '',
-                  movementType:response.title,
-                  value:total,
-                  paid:total,
-                  total,
-                  order:response.order,
-                  movement_id:response.movement_id,
-                  orderConsecutive:response.consecutive,
-                  movement:response.movement,
-                  date:response.date,
-                }}
-              },
+              {name: 'VentaLibre'},
             ],
           })
         })
         .catch((e) =>{
           console.log(e)
           dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
-          dispatch({
-            type: DIALOG_SHOW,
-            payload: {
-              title:'Error',
-              message:
-                e?.data?.message ||
-                (Array.isArray(e?.data?.errors) ? e.data.errors.join('. ') : null) ||
-                e?.data?.error ||
-                'Hubo un error de comunicación con el servidor, por favor revisa tu conexión y/o intenta más tarde.',
-            }
-          });
+          dispatch(buildErrorDialog(e, navigation));
         })
       })
       .catch((e) => {
         console.log(e)
         dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
-        dispatch({
-          type: DIALOG_SHOW,
-          payload: {
-            title:'Error',
-            message:
-              e?.data?.message ||
-              (Array.isArray(e?.data?.errors) ? e.data.errors.join('. ') : null) ||
-              e?.data?.error ||
-              'Hubo un error de comunicación con el servidor, por favor revisa tu conexión y/o intenta más tarde.',
-          }
-        });
+        dispatch(buildErrorDialog(e, navigation));
       })
     }
   }
@@ -183,10 +169,21 @@ export const confirmOrder = ({
 export const completePayment = ({
   navigation
 }) => { 
-  return (dispatch, getState) => { 
+  return (dispatch, getState) => {
     const {user} = getState().userData;
     const {invoice} = getState().confirmCahsOrderData;
     const {product, total, customer} = getState().newSaleData;
+    const cashMethodId = getCashPaymentMethodId(getState());
+    if (cashMethodId == null) {
+      dispatch({
+        type: DIALOG_SHOW,
+        payload: {
+          title: 'Error',
+          message: 'No se pudo identificar el método de pago "Efectivo". Cierra sesión y vuelve a entrar.',
+        },
+      });
+      return;
+    }
     dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: true });
     Token.getToken()
     .then(token => {
@@ -197,11 +194,11 @@ export const completePayment = ({
         customerId:customer ? customer.nid : null,
         product,
         observations:'',
-        invoice:invoice ? invoice == true ? '1':'0' : '0', 
+        invoice:invoice ? invoice == true ? '1':'0' : '0',
         paymentMethods:[{
           type:{
             label:'Efectivo',
-            value:7
+            value:cashMethodId
           },
           value:total
         }],
@@ -227,51 +224,28 @@ export const completePayment = ({
           isCashSale: true,
         });
 
+        // Mismo patrón que confirmOrder: vaciar carrito y volver a VentaLibre.
+        dispatch({type: NEW_SALE_CLEAR});
         navigation.reset({
-          index: 0,
+          index: 1,
           routes: [
             {name: 'BottomMenu'},
-            {name: 'BuyDetails', params:{
-              details:{
-                customer:customer ? customer.label: '',
-                movementType:response.title,
-                value:total,
-                paid:total,
-                total,
-                order:response.order,
-                movement_id:response.movement_id,
-                orderConsecutive:response.consecutive,
-                movement:response.movement,
-                date:response.date,
-              }}
-            },
+            {name: 'VentaLibre'},
           ],
         })
       })
       .catch((e) =>{
         console.log(e)
         dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
-        dispatch({
-          type: DIALOG_SHOW,
-          payload: {
-            title:'Error',
-            message: 'Hubo un error de comunicación con el servidor, por favor revisa tu conexión y/o intenta más tarde.',
-          }
-        });
+        dispatch(buildErrorDialog(e, navigation));
       })
     })
     .catch((e) => {
       console.log(e)
       dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
-      dispatch({
-        type: DIALOG_SHOW,
-        payload: { 
-          title:'Error',
-          message: 'Hubo un error de comunicación con el servidor, por favor revisa tu conexión y/o intenta más tarde.',
-        }
-      });
+      dispatch(buildErrorDialog(e, navigation));
     })
-    
+
   }
 };
 

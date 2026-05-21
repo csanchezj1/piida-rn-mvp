@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { View, Text, TouchableOpacity, Image, SafeAreaView, ScrollView } from 'react-native';
 import { ActivityIndicator, Button } from 'react-native-paper';
 import { newSaleStyles } from '../../../styles/screenStyles';
-import { Shimmer, SaleKitItem, SaleProductItem, Autocomplete, ProductItem, Keypad } from '../../../components';
+import { Shimmer, SaleKitItem, SaleProductItem, Autocomplete, ProductItem, Keypad, LimitBanner } from '../../../components';
 import { registerEventScreenMounted } from '../../../utils/analytics';
 import { DialogContainer } from '../../../layouts';
 import { NumericFormat } from 'react-number-format';
@@ -145,19 +145,14 @@ class NewSaleScreen extends Component {
           )}
         </ScrollView>
       ) : (
-        <View
-          style={this.styles.reachCont}>
-          <Text
-            style={this.styles.reachText}>
-            Has alcanzado el límite diario de registro de ventas. Recuerda que para poder registrar un número ilimitado de tus ventas debes poseer una suscripción premium.
-          </Text>
-          <Button
-            mode="contained"
-            onPress={() => this.props.navigation.navigate('Plans')}
-            style={{marginTop: normalizeSize(12), marginHorizontal: normalizeSize(20)}}
-            contentStyle={{paddingVertical: normalizeSize(4)}}>
-            Ver planes
-          </Button>
+        <View style={{paddingTop: normalizeSize(20)}}>
+          <LimitBanner
+            title="Llegaste al límite diario 🎉"
+            message={'Tu Plan Gratis incluye 30 ventas por día. Mejorá a Plan Básico ($19.000/mes) para registrar ventas ilimitadas y desbloquear más funciones.'}
+            ctaLabel="Mejorar mi plan"
+            onPress={() => this.props.navigation.navigate('Billing')}
+            variant="warning"
+          />
         </View>
       )
     );

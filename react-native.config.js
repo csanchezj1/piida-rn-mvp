@@ -3,6 +3,7 @@
 // no permite Bluetooth Classic sin esa certificación). Sin esta config
 // el Pod del módulo intenta compilarse en iOS y rompe el build.
 module.exports = {
+  assets: ['./assets/fonts'],
   dependencies: {
     'tp-react-native-bluetooth-printer': {
       platforms: {

@@ -2,7 +2,7 @@ import React, { Component, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { colors, fonts, normalizeSize } from '../styles/basicStyles';
 import RBSheet from "react-native-raw-bottom-sheet";
-import {TextInput} from '../components';
+import { TextInput } from '../components';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -38,7 +38,7 @@ class Keypad extends Component {
   handleAdd = () => {
     let number = parseInt(this.state.value, 10);
     if (number > 0) {
-      if(this.props.onAdd){
+      if (this.props.onAdd) {
         this.props.onAdd(number, this.state.note);
       }
       this.setState({ value: '0', note: '' }, () => {
@@ -46,7 +46,7 @@ class Keypad extends Component {
           this.props.onChange('0', '');
         }
       });
-      if(this.RBSheet){
+      if (this.RBSheet) {
         this.RBSheet.close();
       }
     }
@@ -68,12 +68,12 @@ class Keypad extends Component {
           </Text>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.noteButton}
           activeOpacity={0.7}
           onPress={() => {
-            if(this.RBSheet){
-                this.RBSheet.open();
+            if (this.RBSheet) {
+              this.RBSheet.open();
             }
           }}
         >
@@ -109,36 +109,36 @@ class Keypad extends Component {
           }}
           minClosingHeight={(50)}
           height={normalizeSize(300)}
-          customStyles={{container: styles.bottomSheetContainer}}
+          customStyles={{ container: styles.bottomSheetContainer }}
           draggable={true}
           openDuration={250}
           closeDuration={250}
           dragFromTopOnly={true}
         >
-            <View style={{padding: normalizeSize(20)}}>
-                <Text style={styles.sheetTitle}>Añadir nota</Text>
-                <TextInput
-                  placeholder={'Escribe la nota...'}
-                  value={this.state.note}
-                  onChangeText={(text) => this.setState({note: text}, () => {
-                    if (this.props.onChange) {
-                      this.props.onChange(this.state.value, this.state.note);
-                    }
-                  })}
-                  style={{marginTop: normalizeSize(20)}}
-                />
-                <TouchableOpacity 
-                    style={styles.sheetBtn} 
-                    onPress={() => {
-                        this.RBSheet.close();
-                        if(parseFloat(this.state.value) > 0){
-                          this.handleAdd();
-                        }
-                    }}
-                >
-                    <Text style={styles.sheetBtnText}>Guardar</Text>
-                </TouchableOpacity>
-            </View>
+          <View style={{ padding: normalizeSize(20) }}>
+            <Text style={styles.sheetTitle}>+ Añadir nota</Text>
+            <TextInput
+              placeholder={'Escribe la nota...'}
+              value={this.state.note}
+              onChangeText={(text) => this.setState({ note: text }, () => {
+                if (this.props.onChange) {
+                  this.props.onChange(this.state.value, this.state.note);
+                }
+              })}
+              style={{ marginTop: normalizeSize(20) }}
+            />
+            <TouchableOpacity
+              style={styles.sheetBtn}
+              onPress={() => {
+                this.RBSheet.close();
+                if (parseFloat(this.state.value) > 0) {
+                  this.handleAdd();
+                }
+              }}
+            >
+              <Text style={styles.sheetBtnText}>Guardar</Text>
+            </TouchableOpacity>
+          </View>
         </RBSheet>
       </View>
     );
@@ -231,28 +231,28 @@ const styles = StyleSheet.create({
     lineHeight: ADD_FONT * 1.2,
     includeFontPadding: false,
   },
-  bottomSheetContainer:{
-    borderTopLeftRadius:normalizeSize(15),
-    borderTopRightRadius:normalizeSize(15),
+  bottomSheetContainer: {
+    borderTopLeftRadius: normalizeSize(15),
+    borderTopRightRadius: normalizeSize(15),
   },
   sheetTitle: {
-      fontSize: normalizeSize(18),
-      fontFamily: fonts.semiBold,
-      color: colors.text,
-      textAlign: 'center'
+    fontSize: normalizeSize(18),
+    fontFamily: fonts.semiBold,
+    color: colors.text,
+    textAlign: 'center'
   },
   sheetBtn: {
-      backgroundColor: colors.buttonBackground,
-      padding: normalizeSize(15),
-      borderRadius: normalizeSize(8),
-      marginTop: normalizeSize(30),
-      alignItems: 'center'
+    backgroundColor: colors.buttonBackground,
+    padding: normalizeSize(15),
+    borderRadius: normalizeSize(8),
+    marginTop: normalizeSize(30),
+    alignItems: 'center'
   },
   sheetBtnText: {
-      color: 'white',
-      fontFamily: fonts.bold,
-      fontSize: normalizeSize(16),
-      textAlign: 'center'
+    color: 'white',
+    fontFamily: fonts.bold,
+    fontSize: normalizeSize(16),
+    textAlign: 'center'
   }
 });
 

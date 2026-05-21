@@ -105,6 +105,26 @@ export const subscribe = ({planId, creditCardId, cvv}) =>
     }
   };
 
+// Crea un payment intent (transferencia / efectivo). onDone se llama al
+// terminar OK para que la UI cierre el modal y muestre el mensaje.
+export const createPaymentIntent = ({planSlug, amount, method, reference, notes}, onDone) =>
+  async (dispatch, getState) => {
+    dispatch({type: BILLING_BUSY, payload: true});
+    try {
+      const a = auth(getState);
+      await Billing.createPaymentIntent({...a, planSlug, amount, method, reference, notes});
+      if (onDone) onDone();
+    } catch (e) {
+      const msg =
+        e?.data?.message ||
+        e?.message ||
+        'No se pudo registrar el pago.';
+      dispatch({type: DIALOG_SHOW, payload: {title: 'Error', message: msg}});
+    } finally {
+      dispatch({type: BILLING_BUSY, payload: false});
+    }
+  };
+
 export const cancelSubscription = () => async (dispatch, getState) => {
   dispatch({type: BILLING_BUSY, payload: true});
   try {

@@ -149,6 +149,19 @@ function getTotals(uid, type) {
   });
 }
 
+// Próximo consecutivo de venta — para el badge "VENTA #N" de Venta Libre.
+function getNextConsecutive(branch) {
+  return request({
+    url: `api/v2/sales/next-consecutive?branch=${branch}`,
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: Authorization,
+      Accept: 'application/json'
+    },
+  });
+}
+
 function transferInventory({
   token,
   uid,
@@ -219,6 +232,7 @@ const provider = {
   getBalance,
   getInventory,
   getTotals,
+  getNextConsecutive,
   createSale,
   createExpense,
   createPay,

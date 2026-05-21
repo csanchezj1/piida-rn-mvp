@@ -8,12 +8,29 @@ import {
   Divider,
   HelperText,
   List,
+  Modal,
+  Portal,
   Text,
   TextInput,
 } from 'react-native-paper';
 import {Layout} from '../../../layouts';
 import {colors, normalizeSize} from '../../../styles/basicStyles';
 import {registerEventScreenMounted} from '../../../utils/analytics';
+
+/* Datos para pago por transferencia / efectivo. TODO: mover a un endpoint
+   de settings editable desde el panel superadmin en vez de hardcodear. */
+const PIIDA_BANK_INFO = {
+  bank: 'Bancolombia',
+  accountType: 'Cuenta de ahorros',
+  accountNumber: '123-456789-01',
+  holder: 'PIIDA SAS',
+  nit: '901.234.567-8',
+};
+const PIIDA_OFFICE_INFO = {
+  address: 'Cra 00 #00-00, Oficina 000',
+  city: 'Bogotá',
+  hours: 'Lunes a viernes, 8:00 a.m. – 5:00 p.m.',
+};
 
 const cop = (v) => {
   const n = Number(v) || 0;
@@ -48,6 +65,12 @@ class BillingScreen extends Component {
     cardMethod: 'VISA',
     cardNumber: '',
     cardExp: '',
+    // Modal de método de pago.
+    methodPlan: null, // plan elegido para pagar (null = modal cerrado)
+    payMethod: 'card', // 'card' | 'transfer' | 'cash'
+    intentReference: '',
+    intentNotes: '',
+    intentDone: false,
   };
 
   componentDidMount() {
@@ -83,24 +106,55 @@ class BillingScreen extends Component {
 
   subscribeTo = (plan) => {
     const isFree = Number(plan.monthlyPriceCop) === 0;
-    if (!isFree && (this.props.cards || []).length === 0) {
-      Alert.alert('Sin tarjeta', 'Agregá primero una tarjeta para suscribirte.');
-      return;
-    }
-    const cardId = isFree ? undefined : this.props.cards[0].id;
-    Alert.alert(
-      `Cambiar a ${plan.name}`,
-      isFree
-        ? '¿Confirmás el cambio a plan Gratis?'
-        : `Se cobrarán ${cop(plan.monthlyPriceCop)} a tu tarjeta. ¿Continuamos?`,
-      [
+    // Plan gratis: cambio directo con confirmación. Planes pagos: abrir el
+    // modal de método de pago (tarjeta / transferencia / efectivo).
+    if (isFree) {
+      Alert.alert('Cambiar a plan Gratis', '¿Confirmás el cambio a plan Gratis?', [
         {text: 'Cancelar', style: 'cancel'},
         {
           text: 'Continuar',
-          onPress: () =>
-            this.props.actions.subscribe({planId: plan.id, creditCardId: cardId}),
+          onPress: () => this.props.actions.subscribe({planId: plan.id}),
         },
-      ],
+      ]);
+      return;
+    }
+    this.setState({
+      methodPlan: plan,
+      payMethod: 'card',
+      intentReference: '',
+      intentNotes: '',
+      intentDone: false,
+    });
+  };
+
+  closeMethodModal = () => this.setState({methodPlan: null});
+
+  payWithCard = () => {
+    const {methodPlan} = this.state;
+    if (!methodPlan) return;
+    if ((this.props.cards || []).length === 0) {
+      Alert.alert('Sin tarjeta', "Agregá primero una tarjeta en 'Métodos de pago'.");
+      return;
+    }
+    this.props.actions.subscribe({
+      planId: methodPlan.id,
+      creditCardId: this.props.cards[0].id,
+    });
+    this.closeMethodModal();
+  };
+
+  submitIntent = (method) => {
+    const {methodPlan, intentReference, intentNotes} = this.state;
+    if (!methodPlan) return;
+    this.props.actions.createPaymentIntent(
+      {
+        planSlug: methodPlan.slug,
+        amount: Number(methodPlan.monthlyPriceCop),
+        method,
+        reference: intentReference.trim() || undefined,
+        notes: intentNotes.trim() || undefined,
+      },
+      () => this.setState({intentDone: true}),
     );
   };
 
@@ -278,18 +332,26 @@ class BillingScreen extends Component {
             {value: 'MASTERCARD', label: 'Mastercard'},
             {value: 'AMEX', label: 'Amex'},
             {value: 'DINERS', label: 'Diners'},
-          ].map((opt) => (
-            <Chip
-              key={opt.value}
-              compact
-              selected={cardMethod === opt.value}
-              onPress={() => this.setState({cardMethod: opt.value})}
-              showSelectedCheck={false}
-              style={styles.chip}
-              selectedColor={cardMethod === opt.value ? '#FFFFFF' : colors.text}>
-              {opt.label}
-            </Chip>
-          ))}
+          ].map((opt) => {
+            const active = cardMethod === opt.value;
+            return (
+              <Chip
+                key={opt.value}
+                compact
+                showSelectedCheck={false}
+                onPress={() => this.setState({cardMethod: opt.value})}
+                style={[
+                  styles.chip,
+                  active && {backgroundColor: colors.buttonBackground},
+                ]}
+                textStyle={{
+                  color: active ? '#FFFFFF' : colors.text,
+                  fontWeight: active ? 'bold' : 'normal',
+                }}>
+                {opt.label}
+              </Chip>
+            );
+          })}
         </View>
         <TextInput
           mode="outlined"
@@ -372,6 +434,173 @@ class BillingScreen extends Component {
     );
   }
 
+  renderMethodModal() {
+    const {methodPlan, payMethod, intentReference, intentNotes, intentDone} = this.state;
+    const {busy, cards} = this.props;
+    if (!methodPlan) return null;
+    const amount = Number(methodPlan.monthlyPriceCop);
+    const cardList = Array.isArray(cards) ? cards : [];
+
+    return (
+      <Portal>
+        <Modal
+          visible
+          onDismiss={this.closeMethodModal}
+          contentContainerStyle={styles.modalContainer}>
+          <ScrollView>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+              <Text variant="titleMedium">Pagar {methodPlan.name}</Text>
+              <Button compact onPress={this.closeMethodModal} labelStyle={{color: colors.purplishGrey}}>
+                Cerrar
+              </Button>
+            </View>
+            <Text variant="bodySmall" style={{color: colors.purplishGrey, marginBottom: normalizeSize(12)}}>
+              {cop(amount)} / mes
+            </Text>
+
+            {intentDone ? (
+              <View style={{alignItems: 'center', paddingVertical: normalizeSize(16)}}>
+                <Text variant="bodyMedium" style={{textAlign: 'center', marginBottom: normalizeSize(16)}}>
+                  Registramos tu pago. El equipo PIIDA lo verificará y activará tu plan en
+                  breve. Te llegará una notificación.
+                </Text>
+                <Button
+                  mode="contained"
+                  onPress={() => {
+                    this.closeMethodModal();
+                    this.props.actions.loadAll();
+                  }}>
+                  Entendido
+                </Button>
+              </View>
+            ) : (
+              <>
+                {/* Tabs de método */}
+                <View style={styles.chipsRow}>
+                  {[
+                    {id: 'card', label: 'Tarjeta'},
+                    {id: 'transfer', label: 'Transferencia'},
+                    {id: 'cash', label: 'Efectivo'},
+                  ].map((m) => {
+                    const active = payMethod === m.id;
+                    return (
+                      <Chip
+                        key={m.id}
+                        compact
+                        showSelectedCheck={false}
+                        onPress={() => this.setState({payMethod: m.id})}
+                        style={[
+                          styles.chip,
+                          active && {backgroundColor: colors.buttonBackground},
+                        ]}
+                        textStyle={{
+                          color: active ? '#FFFFFF' : colors.text,
+                          fontWeight: active ? 'bold' : 'normal',
+                        }}>
+                        {m.label}
+                      </Chip>
+                    );
+                  })}
+                </View>
+
+                {/* Tarjeta */}
+                {payMethod === 'card' && (
+                  <View style={{marginTop: normalizeSize(8)}}>
+                    <Text variant="bodySmall" style={{color: colors.purplishGrey, marginBottom: normalizeSize(12)}}>
+                      {cardList.length === 0
+                        ? "No tenés tarjetas guardadas. Agregá una en 'Métodos de pago' y volvé a intentar."
+                        : `Se cobrará a tu tarjeta ${cardList[0].brand || cardList[0].paymentMethod} •••• ${cardList[0].last4}. El cobro es inmediato.`}
+                    </Text>
+                    <Button
+                      mode="contained"
+                      disabled={busy || cardList.length === 0}
+                      loading={busy}
+                      onPress={this.payWithCard}>
+                      Pagar {cop(amount)} con tarjeta
+                    </Button>
+                  </View>
+                )}
+
+                {/* Transferencia */}
+                {payMethod === 'transfer' && (
+                  <View style={{marginTop: normalizeSize(8)}}>
+                    <View style={styles.infoBox}>
+                      <Text variant="bodySmall" style={{fontWeight: 'bold'}}>Transferí a esta cuenta:</Text>
+                      <Text variant="bodySmall">{PIIDA_BANK_INFO.bank} · {PIIDA_BANK_INFO.accountType}</Text>
+                      <Text variant="bodyMedium" style={{fontWeight: 'bold'}}>{PIIDA_BANK_INFO.accountNumber}</Text>
+                      <Text variant="bodySmall">{PIIDA_BANK_INFO.holder} · NIT {PIIDA_BANK_INFO.nit}</Text>
+                      <Text variant="bodyMedium" style={{fontWeight: 'bold', marginTop: normalizeSize(4)}}>
+                        Monto: {cop(amount)}
+                      </Text>
+                    </View>
+                    <TextInput
+                      mode="outlined"
+                      label="Número de referencia / comprobante"
+                      value={intentReference}
+                      onChangeText={(v) => this.setState({intentReference: v})}
+                      style={styles.field}
+                    />
+                    <TextInput
+                      mode="outlined"
+                      label="Nota (opcional)"
+                      value={intentNotes}
+                      onChangeText={(v) => this.setState({intentNotes: v})}
+                      multiline
+                      numberOfLines={2}
+                      style={styles.field}
+                    />
+                    <Button
+                      mode="contained"
+                      disabled={busy}
+                      loading={busy}
+                      onPress={() => this.submitIntent('TRANSFER')}
+                      style={{marginTop: normalizeSize(8)}}>
+                      Ya transferí, registrar pago
+                    </Button>
+                  </View>
+                )}
+
+                {/* Efectivo */}
+                {payMethod === 'cash' && (
+                  <View style={{marginTop: normalizeSize(8)}}>
+                    <View style={styles.infoBox}>
+                      <Text variant="bodySmall" style={{fontWeight: 'bold'}}>
+                        Pagá en efectivo en nuestra oficina:
+                      </Text>
+                      <Text variant="bodyMedium" style={{fontWeight: 'bold'}}>{PIIDA_OFFICE_INFO.address}</Text>
+                      <Text variant="bodySmall">{PIIDA_OFFICE_INFO.city}</Text>
+                      <Text variant="bodySmall">{PIIDA_OFFICE_INFO.hours}</Text>
+                      <Text variant="bodyMedium" style={{fontWeight: 'bold', marginTop: normalizeSize(4)}}>
+                        Monto: {cop(amount)}
+                      </Text>
+                    </View>
+                    <TextInput
+                      mode="outlined"
+                      label="Nota (opcional)"
+                      value={intentNotes}
+                      onChangeText={(v) => this.setState({intentNotes: v})}
+                      multiline
+                      numberOfLines={2}
+                      style={styles.field}
+                    />
+                    <Button
+                      mode="contained"
+                      disabled={busy}
+                      loading={busy}
+                      onPress={() => this.submitIntent('CASH')}
+                      style={{marginTop: normalizeSize(8)}}>
+                      Registrar intención de pago
+                    </Button>
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
+        </Modal>
+      </Portal>
+    );
+  }
+
   render() {
     const {loading, error} = this.props;
     return (
@@ -406,6 +635,7 @@ class BillingScreen extends Component {
             </>
           )}
         </ScrollView>
+        {this.renderMethodModal()}
       </Layout>
     );
   }
@@ -446,6 +676,20 @@ const styles = StyleSheet.create({
   },
   chip: {
     backgroundColor: '#FFFFFF',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: normalizeSize(20),
+    borderRadius: normalizeSize(14),
+    padding: normalizeSize(20),
+    maxHeight: '85%',
+  },
+  infoBox: {
+    backgroundColor: 'rgba(247,169,40,0.06)',
+    borderRadius: normalizeSize(8),
+    padding: normalizeSize(12),
+    marginBottom: normalizeSize(10),
+    gap: normalizeSize(2),
   },
 });
 

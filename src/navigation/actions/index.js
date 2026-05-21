@@ -81,7 +81,7 @@ export const showSubscriptionMessage = (name, navigation) => {
         acceptTitle:'Ver planes',
         showCancelButton:true,
         acceptAction:() => {
-          navigation.navigate('Plans'),
+          navigation.navigate('Billing'),
           dispatch(hide())
         }
       }

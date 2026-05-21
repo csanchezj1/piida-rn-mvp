@@ -44,7 +44,8 @@ import {
   ProductsScreen,
   PrinterSettingsScreen,
   BillingScreen,
-  VentaLibreScreen
+  VentaLibreScreen,
+  AdvancedReportsScreen
 } from '../../screens';
 import { colors } from '../../styles/basicStyles';
 
@@ -289,12 +290,12 @@ function Navigation({props}){
               name="ConfirmCashOrder"
               component={ConfirmCashOrderScreen}
               options={() =>({
+                // headerShown:false porque ConfirmCashOrder ya provee su
+                // propio header (con back custom + título + badge EFECTIVO).
+                // El header default del Stack pintaba una flecha naranja
+                // del theme PIIDA encima del back custom.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
             <Stack.Screen
@@ -312,6 +313,18 @@ function Navigation({props}){
             <Stack.Screen
               name="Billing"
               component={BillingScreen}
+              options={() =>({
+                animation: 'slide_from_left',
+                headerTransparent: true,
+                headerTintColor:colors.buttonBackground,
+                title:'',
+                headerShadowVisible:false,
+                headerBackTitleVisible: false
+              })}
+            />
+            <Stack.Screen
+              name="AdvancedReports"
+              component={AdvancedReportsScreen}
               options={() =>({
                 animation: 'slide_from_left',
                 headerTransparent: true,
