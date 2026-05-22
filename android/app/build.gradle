@@ -83,8 +83,8 @@ android {
         applicationId "com.sainetapps.piidaerp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 116
-        versionName "2.44-sandbox"
+        versionCode 120
+        versionName "2.48-sandbox"
     }
     signingConfigs {
         debug {
