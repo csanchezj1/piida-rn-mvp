@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {Alert, ScrollView, StyleSheet, View} from 'react-native';
+import {Alert, ScrollView, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {
   ActivityIndicator,
   Button,
@@ -7,15 +7,29 @@ import {
   Chip,
   Divider,
   HelperText,
+  Icon,
   List,
   Modal,
   Portal,
   Text,
   TextInput,
 } from 'react-native-paper';
-import {Layout} from '../../../layouts';
-import {colors, normalizeSize} from '../../../styles/basicStyles';
+import AppShell from '../../../layouts/AppShell';
+import {colors, fonts, normalizeSize} from '../../../styles/basicStyles';
 import {registerEventScreenMounted} from '../../../utils/analytics';
+
+// Paleta — alineada con el rediseño tablet.
+const BG = '#FAF5EC';
+const INK = '#1A130C';
+const GOLD = '#F7A928';
+const DGOLD = '#C66E00';
+const MUTED = '#7E6A52';
+const SUBTLE = '#A89580';
+const WHITE = '#FFFFFF';
+const BORDER_SOFT = '#EFE3D2';
+const TINT_GOLD = '#FFF6E1';
+const GREEN_BG = '#DCEFE2';
+const GREEN_TXT = '#1F8A4C';
 
 /* Datos para pago por transferencia / efectivo. TODO: mover a un endpoint
    de settings editable desde el panel superadmin en vez de hardcodear. */
@@ -190,72 +204,85 @@ class BillingScreen extends Component {
     const {subscription, busy} = this.props;
     if (!subscription) {
       return (
-        <Card mode="outlined" style={styles.card}>
-          <Card.Content>
-            <Text variant="bodyMedium" style={{color: colors.purplishGrey}}>
-              No tenés suscripción activa. Elegí un plan más abajo.
-            </Text>
-          </Card.Content>
-        </Card>
+        <View style={styles.heroCard}>
+          <Text style={styles.heroEmpty}>
+            No tenés suscripción activa. Elegí un plan más abajo.
+          </Text>
+        </View>
       );
     }
     const st = STATUS[subscription.status] || {txt: subscription.status, color: '#666'};
+    const isActive = subscription.status === 'ACTIVE';
 
     return (
-      <Card mode="outlined" style={styles.card}>
-        <Card.Content>
-          <View style={{flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap'}}>
-            <Text variant="headlineSmall" style={{marginRight: normalizeSize(8)}}>
-              {subscription.plan?.name || 'Plan actual'}
+      <View style={styles.heroCard}>
+        {/* Pill PLAN ACTIVO / estado */}
+        <View style={[styles.heroPill, !isActive && {backgroundColor: st.color}]}>
+          <Icon source={isActive ? 'star-four-points' : 'information-outline'} size={12} color={WHITE} />
+          <Text style={styles.heroPillTxt}>{isActive ? 'PLAN ACTIVO' : st.txt.toUpperCase()}</Text>
+        </View>
+
+        <View style={styles.heroRow}>
+          <View style={{flex: 1}}>
+            <Text style={styles.heroPlan}>{subscription.plan?.name || 'Plan actual'}</Text>
+            <Text style={styles.heroPrice}>
+              {cop(subscription.currentValue)}
+              <Text style={styles.heroPriceUnit}>/mes</Text>
+              {subscription.dueAt ? ` · Próximo cobro ${fmtDate(subscription.dueAt)}` : ''}
             </Text>
-            <Chip
-              compact
-              style={{backgroundColor: st.color + '22'}}
-              textStyle={{color: st.color, fontSize: normalizeSize(11)}}>
-              {st.txt}
-            </Chip>
           </View>
-          <List.Item
-            title={cop(subscription.currentValue)}
-            description="Valor actual"
-            left={(p) => <List.Icon {...p} icon="cash" />}
-            style={{paddingLeft: 0}}
-          />
-          <List.Item
-            title={fmtDate(subscription.dueAt)}
-            description="Próximo cobro"
-            left={(p) => <List.Icon {...p} icon="calendar" />}
-            style={{paddingLeft: 0}}
-          />
-          {subscription.creditCard && (
-            <List.Item
-              title={`${subscription.creditCard.brand || subscription.creditCard.paymentMethod} •••• ${subscription.creditCard.last4}`}
-              description="Tarjeta"
-              left={(p) => <List.Icon {...p} icon="credit-card-outline" />}
-              style={{paddingLeft: 0}}
-            />
-          )}
-          <View style={{flexDirection: 'row', marginTop: normalizeSize(8), gap: normalizeSize(8)}}>
-            {subscription.status === 'ACTIVE' &&
-              Number(subscription.currentValue) > 0 && (
-                <Button
-                  mode="outlined"
-                  disabled={busy}
-                  onPress={this.confirmCancel}>
-                  Cancelar
-                </Button>
-              )}
-            {subscription.status === 'CANCELLED_BY_USER' && (
+          <View style={styles.heroActions}>
+            <Button
+              mode="outlined"
+              disabled={busy}
+              onPress={() => {
+                // Scroll a planes (anchor visual) — el ScrollView ya los muestra.
+              }}
+              labelStyle={{fontSize: 13}}>
+              Cambiar plan
+            </Button>
+          </View>
+        </View>
+
+        {/* Tarjeta asociada */}
+        {subscription.creditCard && (
+          <View style={styles.heroCardRow}>
+            <View style={styles.heroCardIcon}>
+              <Icon source="credit-card-outline" size={20} color={DGOLD} />
+            </View>
+            <View style={{flex: 1, minWidth: 0}}>
+              <Text style={styles.heroCardName}>
+                {subscription.creditCard.brand || subscription.creditCard.paymentMethod} •••• {subscription.creditCard.last4}
+              </Text>
+              <Text style={styles.heroCardMeta} numberOfLines={1}>
+                Vence {String(subscription.creditCard.expirationMonth || '').padStart(2, '0')}/{subscription.creditCard.expirationYear || ''}
+                {subscription.creditCard.cardHolderName ? ` · ${subscription.creditCard.cardHolderName}` : ''}
+              </Text>
+            </View>
+            {isActive && Number(subscription.currentValue) > 0 && (
               <Button
-                mode="contained"
+                mode="outlined"
+                compact
                 disabled={busy}
-                onPress={() => this.props.actions.resumeSubscription()}>
-                Reanudar
+                onPress={this.confirmCancel}
+                labelStyle={{fontSize: 12}}>
+                Cancelar suscripción
               </Button>
             )}
           </View>
-        </Card.Content>
-      </Card>
+        )}
+
+        {/* Si fue cancelada, mostrar reanudar */}
+        {subscription.status === 'CANCELLED_BY_USER' && (
+          <Button
+            mode="contained"
+            disabled={busy}
+            style={{marginTop: 12, alignSelf: 'flex-start'}}
+            onPress={() => this.props.actions.resumeSubscription()}>
+            Reanudar suscripción
+          </Button>
+        )}
+      </View>
     );
   }
 
@@ -381,56 +408,112 @@ class BillingScreen extends Component {
     );
   }
 
+  // Genera la lista de features visibles para una card del plan.
+  // Si el back devuelve `features` (array), lo usa. Si no, deriva del
+  // monthly price + maxSalesPerDay (legible para el cajero).
+  featuresForPlan(p) {
+    if (Array.isArray(p.features) && p.features.length > 0) return p.features;
+    const price = Number(p.monthlyPriceCop);
+    if (price === 0) {
+      return [
+        `Hasta ${p.maxSalesPerDay || 30} ventas/día`,
+        '1 sucursal',
+        'Reportes básicos',
+        'Soporte por WhatsApp',
+      ];
+    }
+    if (price < 35000) {
+      // Plan Básico
+      return [
+        'Ventas ilimitadas',
+        '1 sucursal',
+        'Reportes avanzados',
+        'Soporte prioritario',
+      ];
+    }
+    // Plan Estándar
+    return [
+      'Ventas ilimitadas',
+      'Hasta 3 sucursales',
+      'Reportes avanzados',
+      'Factura electrónica',
+      'Soporte prioritario',
+    ];
+  }
+
   renderPlans() {
     const {plans, subscription, busy} = this.props;
     const list = Array.isArray(plans) ? plans : [];
+    if (list.length === 0) return null;
     return (
-      <>
-        <Text variant="titleSmall" style={styles.section}>
-          Planes disponibles
-        </Text>
-        {list.map((p) => {
-          const isCurrent = subscription?.planId === p.id;
-          const isFree = Number(p.monthlyPriceCop) === 0;
-          return (
-            <Card
-              key={p.id}
-              mode="outlined"
-              style={[styles.card, isCurrent && styles.currentPlanCard]}>
-              <Card.Content>
-                <View style={{flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap'}}>
-                  <Text variant="titleMedium" style={{marginRight: normalizeSize(8)}}>
-                    {p.name}
+      <View>
+        <Text style={styles.section}>Planes disponibles</Text>
+        <View style={styles.plansRow}>
+          {list.map((p) => {
+            const isCurrent = subscription?.planId === p.id;
+            const price = Number(p.monthlyPriceCop) || 0;
+            const isFree = price === 0;
+            // Nombres pedidos por el equipo: Gratis (0), Básico (<35k),
+            // Estándar (>=35k). No usamos más "Premium" / "Empresa".
+            const isBasic = !isFree && price < 35000;
+            const isStandard = price >= 35000;
+            const features = this.featuresForPlan(p);
+            const planLabel = isFree
+              ? 'PLAN GRATIS'
+              : isBasic
+              ? 'PLAN BÁSICO'
+              : 'PLAN ESTÁNDAR';
+
+            return (
+              <View
+                key={p.id}
+                style={[
+                  styles.planCard,
+                  isCurrent && styles.planCardCurrent,
+                ]}>
+                <Text style={styles.planTag}>{planLabel}</Text>
+                <View style={styles.planPriceRow}>
+                  <Text style={styles.planPrice}>
+                    {isFree ? 'Gratis' : cop(price)}
                   </Text>
-                  {isCurrent && (
-                    <Chip compact mode="flat" style={styles.currentChip}>
-                      Tu plan
-                    </Chip>
-                  )}
+                  {!isFree && <Text style={styles.planPriceUnit}>/mes</Text>}
                 </View>
-                <Text variant="headlineSmall" style={{marginTop: normalizeSize(4)}}>
-                  {isFree ? 'Gratis' : `${cop(p.monthlyPriceCop)}/mes`}
-                </Text>
-                <Text variant="bodySmall" style={{color: colors.purplishGrey, marginTop: normalizeSize(2)}}>
-                  {p.maxSalesPerDay
-                    ? `Hasta ${p.maxSalesPerDay} ventas/día`
-                    : 'Ventas ilimitadas'}
-                </Text>
-                {!isCurrent && (
-                  <Button
-                    mode="contained"
-                    disabled={busy}
-                    onPress={() => this.subscribeTo(p)}
-                    style={{marginTop: normalizeSize(12)}}
-                    contentStyle={{paddingVertical: normalizeSize(2)}}>
-                    {isFree ? 'Cambiar a gratis' : 'Suscribirme'}
-                  </Button>
-                )}
-              </Card.Content>
-            </Card>
-          );
-        })}
-      </>
+
+                <View style={styles.planFeatures}>
+                  {features.map((f, i) => (
+                    <View key={i} style={styles.planFeatureRow}>
+                      <View style={styles.planCheck}>
+                        <Icon source="check" size={12} color={GREEN_TXT} />
+                      </View>
+                      <Text style={styles.planFeatureTxt}>{f}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* spacer para que los botones queden alineados al fondo */}
+                <View style={{flex: 1}} />
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  disabled={busy || isCurrent}
+                  onPress={() => this.subscribeTo(p)}
+                  style={[
+                    styles.planBtn,
+                    isCurrent ? styles.planBtnCurrent : styles.planBtnAccent,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.planBtnTxt,
+                      isCurrent ? {color: GREEN_TXT} : {color: WHITE},
+                    ]}>
+                    {isCurrent ? 'Tu plan actual' : isFree ? 'Cambiar a gratis' : 'Suscribirme'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </View>
+      </View>
     );
   }
 
@@ -601,51 +684,177 @@ class BillingScreen extends Component {
     );
   }
 
+  renderSubHeader() {
+    return (
+      <View style={styles.subHeader}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          activeOpacity={0.85}
+          onPress={() => this.props.navigation.goBack()}>
+          <Icon source="chevron-left" size={24} color={INK} />
+        </TouchableOpacity>
+        <View style={{flex: 1, marginLeft: 8}}>
+          <Text style={styles.titleHead}>Suscripción y pagos</Text>
+          <Text style={styles.subtitleHead}>Tu plan, tarjetas y facturación</Text>
+        </View>
+      </View>
+    );
+  }
+
   render() {
     const {loading, error} = this.props;
     return (
-      <Layout hideLogo title="Suscripción" subtitle="y pagos">
-        <ScrollView
-          style={{width: '100%'}}
-          contentContainerStyle={{
-            paddingHorizontal: normalizeSize(16),
-            paddingBottom: normalizeSize(40),
-          }}>
-          {loading && (
-            <ActivityIndicator size="small" color={colors.buttonBackground} />
-          )}
-          {error && (
-            <HelperText type="error" visible>
-              {error}
-            </HelperText>
-          )}
-          {!loading && (
-            <>
-              <Text variant="titleSmall" style={styles.section}>
-                Tu suscripción
-              </Text>
-              {this.renderSubscription()}
-
-              <Text variant="titleSmall" style={styles.section}>
-                Métodos de pago
-              </Text>
-              {this.renderCards()}
-
-              {this.renderPlans()}
-            </>
-          )}
-        </ScrollView>
-        {this.renderMethodModal()}
-      </Layout>
+      <AppShell active="venta">
+        <View style={styles.body}>
+          {this.renderSubHeader()}
+          <ScrollView
+            style={{flex: 1}}
+            contentContainerStyle={{paddingBottom: 28}}
+            showsVerticalScrollIndicator={false}>
+            {loading && (
+              <ActivityIndicator size="small" color={GOLD} />
+            )}
+            {error && (
+              <HelperText type="error" visible>
+                {error}
+              </HelperText>
+            )}
+            {!loading && (
+              <>
+                {this.renderSubscription()}
+                <Text style={styles.section}>Métodos de pago</Text>
+                {this.renderCards()}
+                {this.renderPlans()}
+              </>
+            )}
+          </ScrollView>
+          {this.renderMethodModal()}
+        </View>
+      </AppShell>
     );
   }
 }
 
 const styles = StyleSheet.create({
-  section: {
-    marginTop: normalizeSize(16),
-    marginBottom: normalizeSize(6),
+  body: {flex: 1, backgroundColor: BG, paddingHorizontal: 20, paddingTop: 12},
+
+  subHeader: {flexDirection: 'row', alignItems: 'center', paddingBottom: 14},
+  backBtn: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: WHITE, borderWidth: 1, borderColor: BORDER_SOFT,
+    alignItems: 'center', justifyContent: 'center',
   },
+  titleHead: {fontFamily: fonts.bold, fontSize: 22, color: INK, letterSpacing: -0.3},
+  subtitleHead: {fontFamily: fonts.regular, fontSize: 12, color: MUTED, marginTop: 2},
+
+  section: {
+    fontFamily: fonts.bold,
+    fontSize: 16,
+    color: INK,
+    marginTop: 18,
+    marginBottom: 8,
+  },
+
+  // Hero card del plan activo (mockup 34)
+  heroCard: {
+    backgroundColor: TINT_GOLD,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: GOLD,
+    padding: 20,
+  },
+  heroPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 4,
+    backgroundColor: GOLD,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 10,
+  },
+  heroPillTxt: {fontFamily: fonts.bold, fontSize: 10, color: WHITE, letterSpacing: 0.6},
+  heroRow: {flexDirection: 'row', alignItems: 'center', columnGap: 12},
+  heroPlan: {fontFamily: fonts.bold, fontSize: 26, color: INK, letterSpacing: -0.5},
+  heroPrice: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: DGOLD,
+    marginTop: 4,
+  },
+  heroPriceUnit: {fontFamily: fonts.regular},
+  heroActions: {flexDirection: 'row', columnGap: 8},
+  heroEmpty: {fontFamily: fonts.regular, fontSize: 14, color: DGOLD},
+
+  heroCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 12,
+    backgroundColor: WHITE,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER_SOFT,
+    padding: 12,
+    marginTop: 14,
+  },
+  heroCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: TINT_GOLD,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroCardName: {fontFamily: fonts.bold, fontSize: 14, color: INK},
+  heroCardMeta: {fontFamily: fonts.regular, fontSize: 12, color: MUTED, marginTop: 2},
+
+  // Planes disponibles (mockup ref: 3 cards en fila, premium destacado)
+  plansRow: {flexDirection: 'row', columnGap: 14, marginTop: 6, marginBottom: 10},
+  planCard: {
+    flex: 1,
+    backgroundColor: WHITE,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: BORDER_SOFT,
+    padding: 22,
+    // flexDirection: 'column' implícito + spacer interno hace que los botones
+    // de las tres cards queden alineados en el fondo aunque las listas de
+    // features tengan tamaños distintos.
+    minHeight: 360,
+  },
+  planCardCurrent: {
+    borderColor: GREEN_TXT,
+    borderWidth: 2,
+  },
+  planTag: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: DGOLD,
+    letterSpacing: 1.1,
+    marginBottom: 8,
+  },
+  planPriceRow: {flexDirection: 'row', alignItems: 'baseline', columnGap: 4, marginBottom: 16},
+  planPrice: {
+    fontFamily: fonts.bold,
+    fontSize: 28,
+    color: INK,
+    letterSpacing: -0.5,
+  },
+  planPriceUnit: {fontFamily: fonts.regular, fontSize: 14, color: MUTED},
+  planFeatures: {rowGap: 8, marginBottom: 18},
+  planFeatureRow: {flexDirection: 'row', alignItems: 'center', columnGap: 8},
+  planCheck: {
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: GREEN_BG, alignItems: 'center', justifyContent: 'center',
+  },
+  planFeatureTxt: {flex: 1, fontFamily: fonts.regular, fontSize: 13, color: INK},
+  planBtn: {
+    paddingVertical: 13, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+  },
+  planBtnAccent: {backgroundColor: '#FF5A1F'},
+  planBtnCurrent: {backgroundColor: GREEN_BG, borderWidth: 1, borderColor: GREEN_TXT},
+  planBtnTxt: {fontFamily: fonts.bold, fontSize: 13, color: WHITE},
   card: {
     backgroundColor: '#FFFFFF',
     marginBottom: normalizeSize(4),

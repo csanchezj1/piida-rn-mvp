@@ -334,22 +334,6 @@ class HomeScreen extends Component {
             {!Array.isArray(this.props.total.inventory) > 0 && (
               this.renderInventoryCard()
             )}
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => this.props.navigation.navigate('AdvancedReports')}
-              style={{
-                marginHorizontal: normalizeSize(16),
-                marginTop: normalizeSize(16),
-                backgroundColor: colors.buttonBackground,
-                borderRadius: normalizeSize(12),
-                paddingVertical: normalizeSize(14),
-                alignItems: 'center',
-              }}>
-              <Text style={{color: '#FFFFFF', fontFamily: fonts.bold, fontSize: normalizeSize(15)}}>
-                Ver reportes avanzados
-              </Text>
-            </TouchableOpacity>
           </View>
         ) : (
           <View 

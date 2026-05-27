@@ -3,19 +3,23 @@ import { bindActionCreators } from 'redux';
 import Component from '../component';
 import * as actionsCreators from '../actions';
 
-const mapStateToProps = ({userData, transferData}) => {
-  const { 
+const mapStateToProps = ({userData, transferData, activeBranchData}) => {
+  const {
     user
   } = userData;
 
-  const { 
+  const {
     branch,
     product,
     qty,
     obs,
     errors,
-    changed
+    changed,
+    originInventory,
+    originLoading,
   } = transferData;
+
+  const {refetchTick = 0} = activeBranchData ?? {};
 
   return {
     user,
@@ -24,7 +28,10 @@ const mapStateToProps = ({userData, transferData}) => {
     qty,
     obs,
     errors,
-    changed
+    changed,
+    originInventory,
+    originLoading,
+    refetchTick,
   };
 };
 

@@ -49,7 +49,13 @@ const persistConfig = {
     'createCreditCardData',
     'planData',
     'addInventoryData',
-    'productsData'
+    'productsData',
+    // cashShiftData es estado del server (turno activo). NO debe persistirse:
+    // si se persistía, al rehidratar la app servía un valor stale (0) y los
+    // componentes lo veían antes de que `refreshCashStatus()` trajera el real,
+    // dejando la app bloqueada como "Aún no puedes registrar ventas" aunque
+    // el back reportara has_open_shift:true. Forzamos refetch en boot.
+    'cashShiftData',
   ],
 };
 

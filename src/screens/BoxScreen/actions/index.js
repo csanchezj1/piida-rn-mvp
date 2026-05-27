@@ -80,10 +80,13 @@ export const getBalance = () => {
 }
 
 export const getHistory = () => {
-  return(dispatch) => {
+  return(dispatch, getState) => {
+    // uid para que el back filtre el turno por user (Basic auth sin uid
+    // devuelve cualquier turno activo de la branch — ver back cash controller).
+    const uid = getState().userData?.user?.uid ?? null;
     Token.getToken()
     .then(token => {
-      CashManagement.getCashStatus({ token })
+      CashManagement.getCashStatus({ token, uid })
       .then(response => {
         if(response && response.history) {
           dispatch({ type: BOX_HISTORY, payload: response.history })
@@ -158,9 +161,31 @@ export const submit = ({money, type, uid, nid, navigation}) => {
             }
           });
         })
-        .catch(() =>{
+        .catch((e) =>{
           createTillEvent(user, type)
+          console.log('[Box.submit] error:', e);
           dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
+          // Surface del mensaje real del back (ej: "Ya tienes un turno
+          // abierto en esta sucursal"). Antes el catch tragaba el error y
+          // el cajero veía el loader apagarse sin feedback.
+          const backMsg =
+            e?.data?.message ||
+            (Array.isArray(e?.data?.errors) ? e.data.errors.join('. ') : null) ||
+            'No se pudo completar la operación. Revisá tu conexión e intentá de nuevo.';
+          dispatch({
+            type: DIALOG_SHOW,
+            payload: {
+              title: type == 'open' ? 'Abrir caja' : type == 'loan' ? 'Prestar caja' : 'Cerrar caja',
+              message: backMsg,
+            }
+          });
+          // Si el back rechazó porque ya hay turno activo (intento idempotente
+          // de abrir el mismo turno), refrescamos el cashShift para que la
+          // app refleje el turno existente desde web/otra sesión.
+          if (type == 'open' && /turno.*abierto/i.test(backMsg)) {
+            dispatch(refreshCashStatus());
+            dispatch(login());
+          }
         })
       })
     }

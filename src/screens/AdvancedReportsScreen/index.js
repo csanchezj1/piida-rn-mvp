@@ -1,62 +1,76 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {Dimensions, ScrollView, StyleSheet, TouchableOpacity, View} from 'react-native';
-import {ActivityIndicator, Button, Card, Divider, Icon, Text} from 'react-native-paper';
+import {ActivityIndicator, Icon, Text} from 'react-native-paper';
 import {useSelector} from 'react-redux';
 import {useNavigation} from '@react-navigation/native';
 import {BarChart, LineChart, PieChart} from 'react-native-chart-kit';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import {Layout} from '../../layouts';
-import {colors, fonts, normalizeSize} from '../../styles/basicStyles';
+import AppShell from '../../layouts/AppShell';
+import {fonts} from '../../styles/basicStyles';
 import Reports from '../../api/reports';
 
+const INK = '#1A130C';
+const DGOLD = '#C66E00';
+const MUTED = '#7E6A52';
 const GOLD = '#F7A928';
+const GREEN = '#36B37E';
 const RED = '#E5484D';
+const WHITE = '#FFFFFF';
+const FIELD_BORDER = '#EFE3D2';
 const PIE_COLORS = ['#F7A928', '#4C9AFF', '#36B37E', '#9F7AEA', '#FF8B5A', '#00B8D9', '#FFC400', '#8C6F60'];
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
-const cop = (n) => {
-  const v = Math.round(Number(n) || 0);
-  return '$' + v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-};
-
-const pct = (cur, prev) => {
-  if (!prev) return cur > 0 ? 100 : 0;
-  return Math.round(((cur - prev) / prev) * 100);
-};
-
-// Date -> 'YYYY-MM-DD'
+const cop = (n) => '$' + (Math.round(Number(n) || 0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+const pct = (cur, prev) => (!prev ? (cur > 0 ? 100 : 0) : Math.round(((cur - prev) / prev) * 100));
 const ymd = (d) => {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
-
-const prettyDate = (s) => {
-  if (!s) return '—';
-  const d = new Date(s);
-  if (isNaN(d.getTime())) return s;
-  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  return `${d.getDate()} ${meses[d.getMonth()]}`;
+const longDate = (d) => `${String(d.getDate()).padStart(2, '0')} ${MESES[d.getMonth()]} ${d.getFullYear()}`;
+const shortDate = (s) => {
+  if (!s) return '';
+  // Las claves llegan como 'YYYY-MM-DD'. new Date('YYYY-MM-DD') las parsea
+  // como UTC: en Colombia (UTC-5) getDate() devolvía el día ANTERIOR y el
+  // eje de la gráfica quedaba corrido un día. Parseamos los componentes
+  // como fecha local.
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  const d = m
+    ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    : new Date(s);
+  return isNaN(d.getTime()) ? s : `${d.getDate()} ${MESES[d.getMonth()]}`;
 };
 
-const CHART_W = Dimensions.get('window').width - normalizeSize(64);
+// Lista de TODOS los días entre dos fechas (YYYY-MM-DD), inclusive.
+const eachDay = (from, to) => {
+  const out = [];
+  const cur = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const last = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  while (cur <= last) {
+    out.push(ymd(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+};
+
+const CHART_W = Dimensions.get('window').width - 88 - 48 - 36;
 const chartConfig = {
-  backgroundGradientFrom: '#FFFFFF',
-  backgroundGradientTo: '#FFFFFF',
+  backgroundGradientFrom: WHITE,
+  backgroundGradientTo: WHITE,
   decimalPlaces: 0,
-  color: (o = 1) => `rgba(26, 20, 16, ${o})`,
-  labelColor: (o = 1) => `rgba(140, 111, 96, ${o})`,
+  color: (o = 1) => `rgba(26, 19, 12, ${o})`,
+  labelColor: (o = 1) => `rgba(126, 106, 82, ${o})`,
   propsForBackgroundLines: {stroke: '#F0E8DA'},
   barPercentage: 0.6,
 };
 
 const AdvancedReportsScreen = () => {
   const navigation = useNavigation();
-  const {user, password} = useSelector((s) => s.userData);
+  const {user, password} = useSelector((st) => st.userData);
 
   const today = new Date();
-  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const [dateFrom, setDateFrom] = useState(firstOfMonth);
+  const [dateFrom, setDateFrom] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [dateTo, setDateTo] = useState(today);
-  const [picker, setPicker] = useState(null); // 'from' | 'to' | null
+  const [picker, setPicker] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -64,23 +78,17 @@ const AdvancedReportsScreen = () => {
   const [topSellers, setTopSellers] = useState([]);
   const [lowStock, setLowStock] = useState([]);
   const [cash, setCash] = useState([]);
+  const [tip, setTip] = useState(null); // punto tocado en la gráfica
 
-  // Resumen depende del rango de fechas; se recarga al cambiarlas.
   const loadSummary = useCallback(() => {
     setLoading(true);
     setError(null);
-    Reports.getSummary({
-      email: user?.email,
-      password,
-      dateFrom: ymd(dateFrom),
-      dateTo: ymd(dateTo),
-    })
+    Reports.getSummary({email: user?.email, password, dateFrom: ymd(dateFrom), dateTo: ymd(dateTo)})
       .then((res) => setSummary(res))
       .catch((e) => setError(e?.data?.message || 'No se pudo cargar el reporte.'))
       .finally(() => setLoading(false));
   }, [user, password, dateFrom, dateTo]);
 
-  // Inventario y caja no dependen del rango — se cargan una vez.
   const loadStatic = useCallback(() => {
     Reports.getTopSellers({email: user?.email, password})
       .then((res) => setTopSellers(Array.isArray(res) ? res : []))
@@ -109,27 +117,26 @@ const AdvancedReportsScreen = () => {
       ? (k.prev_total_sales || 0) / k.prev_total_transactions
       : 0;
     const items = [
-      {label: 'Ventas', value: cop(k.total_sales), icon: 'cash', tint: '#36B37E', change: pct(k.total_sales, k.prev_total_sales)},
+      {label: 'Ventas', value: cop(k.total_sales), icon: 'cash', tint: GREEN, change: pct(k.total_sales, k.prev_total_sales)},
       {label: 'Gastos', value: cop(k.total_expenses), icon: 'receipt', tint: RED, change: pct(k.total_expenses, k.prev_total_expenses), invert: true},
       {label: 'Ganancia neta', value: cop(k.net_profit), icon: 'trending-up', tint: GOLD, change: pct(k.net_profit, prevNet)},
       {label: 'Ticket promedio', value: cop(k.avg_ticket), icon: 'wallet-outline', tint: '#4C9AFF', change: pct(k.avg_ticket, prevTicket)},
       {label: 'Operaciones', value: String(k.total_transactions ?? 0), icon: 'cart-outline', tint: '#9F7AEA', change: pct(k.total_transactions, k.prev_total_transactions)},
     ];
     return (
-      <View style={styles.kpiGrid}>
+      <View style={s.kpiGrid}>
         {items.map((it, i) => {
-          // invert: para gastos, subir es "malo" (rojo).
           const good = it.invert ? it.change <= 0 : it.change >= 0;
           return (
-            <View key={i} style={styles.kpiCard}>
-              <View style={[styles.kpiIcon, {backgroundColor: it.tint + '22'}]}>
+            <View key={i} style={s.kpiCard}>
+              <View style={[s.kpiIcon, {backgroundColor: it.tint + '22'}]}>
                 <Icon source={it.icon} size={18} color={it.tint} />
               </View>
-              <Text style={styles.kpiCardLabel}>{it.label}</Text>
-              <Text style={styles.kpiCardValue} numberOfLines={1} adjustsFontSizeToFit>
+              <Text style={s.kpiLabel}>{it.label}</Text>
+              <Text style={s.kpiValue} numberOfLines={1} adjustsFontSizeToFit>
                 {it.value}
               </Text>
-              <Text style={[styles.kpiCardChange, {color: good ? '#36B37E' : RED}]}>
+              <Text style={[s.kpiChange, {color: good ? GREEN : RED}]}>
                 {it.change >= 0 ? '▲' : '▼'} {Math.abs(it.change)}% vs anterior
               </Text>
             </View>
@@ -139,249 +146,255 @@ const AdvancedReportsScreen = () => {
     );
   };
 
-  // ─── Evolución (línea/área) ─────────────────────────────────
-  const renderEvolution = () => {
-    const rows = summary?.sales_by_date || [];
-    return (
-      <Card mode="outlined" style={styles.card}>
-        <Card.Content>
-          <Text style={styles.cardTitle}>Evolución de ventas y gastos</Text>
-          {rows.length === 0 ? (
-            <Text style={styles.empty}>Sin movimientos en el período.</Text>
-          ) : (
-            <LineChart
-              data={{
-                labels: rows.map((r, i) => {
-                  const step = Math.ceil(rows.length / 6);
-                  return i % step === 0 ? prettyDate(r.date) : '';
-                }),
-                datasets: [
-                  {data: rows.map((r) => Number(r.sales) || 0), color: (o = 1) => `rgba(247,169,40,${o})`, strokeWidth: 2},
-                  {data: rows.map((r) => Number(r.expenses) || 0), color: (o = 1) => `rgba(229,72,77,${o})`, strokeWidth: 2},
-                ],
-                legend: ['Ventas', 'Gastos'],
-              }}
-              width={CHART_W}
-              height={normalizeSize(200)}
-              chartConfig={chartConfig}
-              bezier
-              withInnerLines
-              style={styles.chart}
-            />
-          )}
-        </Card.Content>
-      </Card>
-    );
-  };
-
-  // ─── Ventas por método de pago (torta) ──────────────────────
-  const renderPayments = () => {
-    const rows = summary?.sales_by_payment_method || [];
-    return (
-      <Card mode="outlined" style={styles.card}>
-        <Card.Content>
-          <Text style={styles.cardTitle}>Ventas por método de pago</Text>
-          {rows.length === 0 ? (
-            <Text style={styles.empty}>Sin ventas en el período.</Text>
-          ) : (
-            <PieChart
-              data={rows.map((r, i) => ({
-                name: r.method,
-                total: Number(r.total) || 0,
-                color: PIE_COLORS[i % PIE_COLORS.length],
-                legendFontColor: colors.text,
-                legendFontSize: normalizeSize(12),
-              }))}
-              width={CHART_W}
-              height={normalizeSize(200)}
-              chartConfig={chartConfig}
-              accessor="total"
-              backgroundColor="transparent"
-              paddingLeft="8"
-              absolute
-            />
-          )}
-        </Card.Content>
-      </Card>
-    );
-  };
-
-  // ─── Gastos por tipo (barras) ───────────────────────────────
-  const renderExpenses = () => {
-    const rows = summary?.expenses_by_type || [];
-    return (
-      <Card mode="outlined" style={styles.card}>
-        <Card.Content>
-          <Text style={styles.cardTitle}>Gastos por tipo</Text>
-          {rows.length === 0 ? (
-            <Text style={styles.empty}>Sin gastos en el período.</Text>
-          ) : (
-            <BarChart
-              data={{
-                labels: rows.map((r) => String(r.type || '').slice(0, 8)),
-                datasets: [{data: rows.map((r) => Number(r.total) || 0)}],
-              }}
-              width={CHART_W}
-              height={normalizeSize(220)}
-              chartConfig={{...chartConfig, color: (o = 1) => `rgba(229,72,77,${o})`}}
-              fromZero
-              showValuesOnTopOfBars
-              verticalLabelRotation={20}
-              style={styles.chart}
-            />
-          )}
-        </Card.Content>
-      </Card>
-    );
-  };
-
-  // ─── Top productos (barras) ─────────────────────────────────
-  const renderTopSellers = () => (
-    <Card mode="outlined" style={styles.card}>
-      <Card.Content>
-        <Text style={styles.cardTitle}>Productos más vendidos</Text>
-        {topSellers.length === 0 ? (
-          <Text style={styles.empty}>Sin ventas registradas.</Text>
-        ) : (
-          <BarChart
-            data={{
-              labels: topSellers.map((p) => String(p.product_name || '').slice(0, 8)),
-              datasets: [{data: topSellers.map((p) => Number(p.quantity_sold) || 0)}],
-            }}
-            width={CHART_W}
-            height={normalizeSize(220)}
-            chartConfig={{...chartConfig, color: (o = 1) => `rgba(247,169,40,${o})`}}
-            fromZero
-            showValuesOnTopOfBars
-            verticalLabelRotation={20}
-            style={styles.chart}
-          />
-        )}
-      </Card.Content>
-    </Card>
+  const card = (title, subtitle, body) => (
+    <View style={s.card}>
+      <Text style={s.cardTitle}>{title}</Text>
+      {!!subtitle && <Text style={s.cardSub}>{subtitle}</Text>}
+      <View style={{marginTop: 12}}>{body}</View>
+    </View>
   );
 
-  // ─── Stock bajo (tabla + botón) ─────────────────────────────
+  const renderEvolution = () => {
+    // Rellenamos TODOS los días del rango: los que no tienen movimientos van en 0.
+    const dayMap = {};
+    (summary?.sales_by_date || []).forEach((r) => {
+      dayMap[r.date] = r;
+    });
+    const days = eachDay(dateFrom, dateTo).map((key) => ({
+      date: key,
+      sales: Number(dayMap[key]?.sales) || 0,
+      expenses: Number(dayMap[key]?.expenses) || 0,
+    }));
+    // Índices a etiquetar: hasta 6, repartidos parejo e incluyendo SIEMPRE
+    // el primer y el último día — así el día de hoy queda visible en el eje.
+    const labelIdx = new Set();
+    const labelCount = Math.min(6, days.length);
+    for (let k = 0; k < labelCount; k++) {
+      labelIdx.add(
+        Math.round((k * (days.length - 1)) / Math.max(1, labelCount - 1)),
+      );
+    }
+    return card(
+      'Evolución de ventas y gastos',
+      'Ventas vs gastos del período · tocá un punto para ver el detalle',
+      days.length === 0 ? (
+        <Text style={s.empty}>Seleccioná un rango de fechas válido.</Text>
+      ) : (
+        <View style={{position: 'relative'}}>
+          <LineChart
+            data={{
+              labels: days.map((r, i) => (labelIdx.has(i) ? shortDate(r.date) : '')),
+              datasets: [
+                {data: days.map((r) => r.sales), color: (o = 1) => `rgba(247,169,40,${o})`, strokeWidth: 2},
+                {data: days.map((r) => r.expenses), color: (o = 1) => `rgba(194,66,19,${o})`, strokeWidth: 2},
+              ],
+              legend: ['Ventas', 'Gastos'],
+            }}
+            width={CHART_W}
+            height={210}
+            chartConfig={chartConfig}
+            bezier
+            style={s.chart}
+            onDataPointClick={({index, x, y}) =>
+              setTip((p) => (p && p.index === index ? null : {index, x, y}))
+            }
+          />
+          {tip && days[tip.index] && (
+            <View
+              style={[
+                s.tooltip,
+                {
+                  left: Math.max(0, Math.min(tip.x - 72, CHART_W - 144)),
+                  top: Math.max(0, tip.y - 72),
+                },
+              ]}>
+              <Text style={s.tipDay}>{shortDate(days[tip.index].date)}</Text>
+              <Text style={s.tipLine}>Ventas: {cop(days[tip.index].sales)}</Text>
+              <Text style={s.tipLine}>Gastos: {cop(days[tip.index].expenses)}</Text>
+            </View>
+          )}
+        </View>
+      ),
+    );
+  };
+
+  const renderPayments = () => {
+    const rows = summary?.sales_by_payment_method || [];
+    return card(
+      'Ventas por método de pago',
+      'Distribución del período',
+      rows.length === 0 ? (
+        <Text style={s.empty}>Sin ventas en el período.</Text>
+      ) : (
+        <PieChart
+          data={rows.map((r, i) => ({
+            name: r.method,
+            total: Number(r.total) || 0,
+            color: PIE_COLORS[i % PIE_COLORS.length],
+            legendFontColor: MUTED,
+            legendFontSize: 12,
+          }))}
+          width={CHART_W}
+          height={200}
+          chartConfig={chartConfig}
+          accessor="total"
+          backgroundColor="transparent"
+          paddingLeft="8"
+          absolute
+        />
+      ),
+    );
+  };
+
+  const renderExpenses = () => {
+    const rows = summary?.expenses_by_type || [];
+    return card(
+      'Gastos por tipo',
+      'Total por categoría',
+      rows.length === 0 ? (
+        <Text style={s.empty}>Sin gastos en el período.</Text>
+      ) : (
+        <BarChart
+          data={{
+            labels: rows.map((r) => String(r.type || '').slice(0, 8)),
+            datasets: [{data: rows.map((r) => Number(r.total) || 0)}],
+          }}
+          width={CHART_W}
+          height={220}
+          chartConfig={{...chartConfig, color: (o = 1) => `rgba(229,72,77,${o})`}}
+          fromZero
+          showValuesOnTopOfBars
+          verticalLabelRotation={20}
+          style={s.chart}
+        />
+      ),
+    );
+  };
+
+  const renderTopSellers = () =>
+    card(
+      'Productos más vendidos',
+      'Top 10 por unidades',
+      topSellers.length === 0 ? (
+        <Text style={s.empty}>Sin ventas registradas.</Text>
+      ) : (
+        <BarChart
+          data={{
+            labels: topSellers.map((p) => String(p.product_name || '').slice(0, 8)),
+            datasets: [{data: topSellers.map((p) => Number(p.quantity_sold) || 0)}],
+          }}
+          width={CHART_W}
+          height={220}
+          chartConfig={{...chartConfig, color: (o = 1) => `rgba(247,169,40,${o})`}}
+          fromZero
+          showValuesOnTopOfBars
+          verticalLabelRotation={20}
+          style={s.chart}
+        />
+      ),
+    );
+
   const stockStatus = (it) => {
-    const s = Number(it.stock) || 0;
+    const st = Number(it.stock) || 0;
     const th = Number(it.threshold) || 10;
-    if (s <= 0) return {label: 'Agotado', color: RED};
-    if (s <= th / 2) return {label: 'Crítico', color: '#E8830C'};
+    if (st <= 0) return {label: 'Agotado', color: RED};
+    if (st <= th / 2) return {label: 'Crítico', color: '#E8830C'};
     return {label: 'Bajo', color: GOLD};
   };
-  const renderLowStock = () => (
-    <Card mode="outlined" style={styles.card}>
-      <Card.Content>
-        <Text style={styles.cardTitle}>Productos con stock bajo</Text>
+
+  const renderLowStock = () =>
+    card(
+      'Productos con stock bajo',
+      'Por debajo del umbral de 10 unidades',
+      <>
         {lowStock.length === 0 ? (
-          <Text style={styles.empty}>Todo el inventario está por encima del umbral.</Text>
+          <Text style={s.empty}>Todo el inventario está por encima del umbral.</Text>
         ) : (
           lowStock.map((it, i) => {
             const st = stockStatus(it);
             return (
-              <View key={i}>
-                {i > 0 && <Divider />}
-                <View style={styles.tableRow}>
-                  <View style={{flex: 1, paddingRight: normalizeSize(8)}}>
-                    <Text style={styles.rowMain} numberOfLines={1}>
-                      {it.product_name}
-                    </Text>
-                    <Text style={styles.rowSub} numberOfLines={1}>
-                      {it.branch_name || 'Sucursal'}
-                    </Text>
-                  </View>
-                  <Text style={styles.rowValue}>{it.stock} und</Text>
-                  <View style={[styles.badge, {backgroundColor: st.color + '22'}]}>
-                    <Text style={[styles.badgeText, {color: st.color}]}>{st.label}</Text>
-                  </View>
+              <View key={i} style={[s.row, i > 0 && s.rowBorder]}>
+                <View style={{flex: 1, paddingRight: 8}}>
+                  <Text style={s.rowMain} numberOfLines={1}>{it.product_name}</Text>
+                  <Text style={s.rowSub} numberOfLines={1}>{it.branch_name || 'Sucursal'}</Text>
+                </View>
+                <Text style={s.rowValue}>{it.stock} und</Text>
+                <View style={[s.badge, {backgroundColor: st.color + '22'}]}>
+                  <Text style={[s.badgeText, {color: st.color}]}>{st.label}</Text>
                 </View>
               </View>
             );
           })
         )}
-        <Button
-          mode="outlined"
-          icon="package-variant"
-          onPress={() => navigation.navigate('InventoryList')}
-          style={{marginTop: normalizeSize(12)}}
-          contentStyle={{paddingVertical: normalizeSize(4)}}>
-          Ver todo el inventario
-        </Button>
-      </Card.Content>
-    </Card>
-  );
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={s.inventoryBtn}
+          onPress={() => navigation.navigate('InventoryList')}>
+          <Icon source="package-variant" size={18} color={DGOLD} />
+          <Text style={s.inventoryBtnText}>Ver todo el inventario</Text>
+        </TouchableOpacity>
+      </>,
+    );
 
-  // ─── Historial de cierres de caja ───────────────────────────
-  const renderCash = () => (
-    <Card mode="outlined" style={styles.card}>
-      <Card.Content>
-        <Text style={styles.cardTitle}>Historial de cierres de caja</Text>
-        {cash.length === 0 ? (
-          <Text style={styles.empty}>Sin cierres de caja registrados.</Text>
-        ) : (
-          cash.map((c, i) => {
-            const mismatch = Number(c.mismatch) || 0;
-            return (
-              <View key={i}>
-                {i > 0 && <Divider />}
-                <View style={styles.tableRow}>
-                  <View style={{flex: 1, paddingRight: normalizeSize(8)}}>
-                    <Text style={styles.rowMain} numberOfLines={1}>
-                      {prettyDate(c.closed_at || c.opened_at)}
-                      {c.branch_name ? ` · ${c.branch_name}` : ''}
-                    </Text>
-                    <Text style={styles.rowSub} numberOfLines={1}>
-                      {c.author || 'Cajero'} · cierre {cop(c.closing_money)}
-                    </Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.rowValue,
-                      {color: mismatch === 0 ? '#36B37E' : RED},
-                    ]}>
-                    {mismatch === 0
-                      ? 'Cuadrada'
-                      : (mismatch > 0 ? '+' : '') + cop(mismatch)}
-                  </Text>
-                </View>
+  const renderCash = () =>
+    card(
+      'Historial de cierres de caja',
+      'Últimos cierres registrados',
+      cash.length === 0 ? (
+        <Text style={s.empty}>Sin cierres de caja registrados.</Text>
+      ) : (
+        cash.map((c, i) => {
+          const mismatch = Number(c.mismatch) || 0;
+          return (
+            <View key={i} style={[s.row, i > 0 && s.rowBorder]}>
+              <View style={{flex: 1, paddingRight: 8}}>
+                <Text style={s.rowMain} numberOfLines={1}>
+                  {shortDate(c.closed_at || c.opened_at)}
+                  {c.branch_name ? ` · ${c.branch_name}` : ''}
+                </Text>
+                <Text style={s.rowSub} numberOfLines={1}>
+                  {c.author || 'Cajero'} · cierre {cop(c.closing_money)}
+                </Text>
               </View>
-            );
-          })
-        )}
-      </Card.Content>
-    </Card>
-  );
+              <Text style={[s.rowValue, {color: mismatch === 0 ? GREEN : RED}]}>
+                {mismatch === 0 ? 'Cuadrada' : (mismatch > 0 ? '+' : '') + cop(mismatch)}
+              </Text>
+            </View>
+          );
+        })
+      ),
+    );
 
   return (
-    <Layout hideLogo title="Reportes" subtitle="del negocio">
+    <AppShell active="reportes">
       <ScrollView
-        style={{width: '100%'}}
-        contentContainerStyle={{
-          paddingHorizontal: normalizeSize(16),
-          paddingBottom: normalizeSize(40),
-        }}>
-        {/* Filtro de fechas */}
-        <View style={styles.dateRow}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.dateBtn}
-            onPress={() => setPicker('from')}>
-            <Icon source="calendar-start" size={18} color={colors.purplishGrey} />
-            <View>
-              <Text style={styles.dateLabel}>Desde</Text>
-              <Text style={styles.dateValue}>{ymd(dateFrom)}</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.dateBtn}
-            onPress={() => setPicker('to')}>
-            <Icon source="calendar-end" size={18} color={colors.purplishGrey} />
-            <View>
-              <Text style={styles.dateLabel}>Hasta</Text>
-              <Text style={styles.dateValue}>{ymd(dateTo)}</Text>
-            </View>
-          </TouchableOpacity>
+        style={{flex: 1}}
+        contentContainerStyle={s.scroll}
+        showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={s.header}>
+          <View style={{flex: 1, paddingRight: 12}}>
+            <Text style={s.title}>Reportes del negocio</Text>
+            <Text style={s.subtitle}>
+              Ventas, gastos, inventario y cajas en el período seleccionado
+            </Text>
+          </View>
+          <View style={s.dateRow}>
+            <TouchableOpacity activeOpacity={0.7} style={s.dateBtn} onPress={() => setPicker('from')}>
+              <Icon source="calendar-start" size={18} color={INK} />
+              <View>
+                <Text style={s.dateLabel}>DESDE</Text>
+                <Text style={s.dateValue}>{longDate(dateFrom)}</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity activeOpacity={0.7} style={s.dateBtn} onPress={() => setPicker('to')}>
+              <Icon source="calendar-end" size={18} color={INK} />
+              <View>
+                <Text style={s.dateLabel}>HASTA</Text>
+                <Text style={s.dateValue}>{longDate(dateTo)}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <DateTimePickerModal
@@ -397,16 +410,8 @@ const AdvancedReportsScreen = () => {
           onCancel={() => setPicker(null)}
         />
 
-        {loading && (
-          <ActivityIndicator
-            size="large"
-            color={colors.buttonBackground}
-            style={{marginTop: normalizeSize(40)}}
-          />
-        )}
-        {!loading && error && (
-          <Text style={[styles.empty, {marginTop: normalizeSize(40)}]}>{error}</Text>
-        )}
+        {loading && <ActivityIndicator size="large" color={GOLD} style={{marginTop: 60}} />}
+        {!loading && error && <Text style={[s.empty, {marginTop: 60}]}>{error}</Text>}
         {!loading && !error && summary && (
           <>
             {renderKpis()}
@@ -419,129 +424,213 @@ const AdvancedReportsScreen = () => {
           </>
         )}
       </ScrollView>
-    </Layout>
+    </AppShell>
   );
 };
 
-const styles = StyleSheet.create({
-  dateRow: {
+const s = StyleSheet.create({
+  // paddingBottom grande: la sección final (gráfico de pago) quedaba pegada
+  // al borde y la última fila se cortaba. flexGrow:1 asegura que la
+  // ScrollView siempre ocupe la altura disponible del padre.
+  scroll: {padding: 24, paddingBottom: 120, flexGrow: 1},
+
+  header: {
     flexDirection: 'row',
-    gap: normalizeSize(10),
-    marginTop: normalizeSize(12),
+    alignItems: 'flex-end',
+    marginBottom: 18,
   },
+  title: {
+    fontFamily: fonts.bold,
+    fontSize: 26,
+    letterSpacing: -0.6,
+    color: INK,
+  },
+  subtitle: {
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    color: MUTED,
+    marginTop: 4,
+  },
+  dateRow: {flexDirection: 'row', columnGap: 10},
   dateBtn: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: normalizeSize(8),
-    backgroundColor: '#FFFFFF',
+    columnGap: 10,
+    backgroundColor: WHITE,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E6DCCB',
-    borderRadius: normalizeSize(10),
-    paddingVertical: normalizeSize(8),
-    paddingHorizontal: normalizeSize(12),
+    borderColor: FIELD_BORDER,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   dateLabel: {
-    fontFamily: fonts.regular,
-    fontSize: normalizeSize(10),
-    color: colors.purplishGrey,
+    fontFamily: fonts.bold,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: MUTED,
   },
   dateValue: {
     fontFamily: fonts.bold,
-    fontSize: normalizeSize(13),
-    color: colors.text,
+    fontSize: 14,
+    color: INK,
+    marginTop: 3,
   },
+
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: normalizeSize(10),
-    marginTop: normalizeSize(12),
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 4,
   },
   kpiCard: {
     flexGrow: 1,
-    flexBasis: '30%',
-    minWidth: normalizeSize(150),
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E6DCCB',
-    borderRadius: normalizeSize(12),
-    padding: normalizeSize(12),
+    flexBasis: '17%',
+    minWidth: 140,
+    height: 100,
+    backgroundColor: WHITE,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    shadowColor: '#3C1E0A',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   kpiIcon: {
-    width: normalizeSize(32),
-    height: normalizeSize(32),
-    borderRadius: normalizeSize(16),
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: normalizeSize(8),
+    marginBottom: 5,
   },
-  kpiCardLabel: {
-    fontFamily: fonts.regular,
-    fontSize: normalizeSize(12),
-    color: colors.purplishGrey,
+  kpiLabel: {
+    fontFamily: fonts.semiBold,
+    fontSize: 11,
+    color: MUTED,
+    includeFontPadding: false,
   },
-  kpiCardValue: {
+  kpiValue: {
     fontFamily: fonts.bold,
-    fontSize: normalizeSize(18),
-    color: colors.text,
-    marginTop: 2,
+    fontSize: 17,
+    letterSpacing: -0.5,
+    color: INK,
+    marginTop: 1,
+    includeFontPadding: false,
   },
-  kpiCardChange: {
-    fontFamily: fonts.regular,
-    fontSize: normalizeSize(10),
+  kpiChange: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
     marginTop: 2,
+    includeFontPadding: false,
   },
+
   card: {
-    backgroundColor: '#FFFFFF',
-    marginTop: normalizeSize(12),
+    backgroundColor: WHITE,
+    borderRadius: 18,
+    padding: 18,
+    marginTop: 12,
+    shadowColor: '#3C1E0A',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   cardTitle: {
     fontFamily: fonts.bold,
-    fontSize: normalizeSize(15),
-    color: colors.buttonBackground,
-    marginBottom: normalizeSize(8),
+    fontSize: 16,
+    letterSpacing: -0.2,
+    color: DGOLD,
+  },
+  cardSub: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: MUTED,
+    marginTop: 2,
   },
   chart: {
-    borderRadius: normalizeSize(12),
-    marginLeft: -normalizeSize(8),
+    borderRadius: 12,
+    marginLeft: -8,
+  },
+  tooltip: {
+    position: 'absolute',
+    width: 144,
+    backgroundColor: INK,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  tipDay: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: GOLD,
+    marginBottom: 2,
+  },
+  tipLine: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: WHITE,
   },
   empty: {
     fontFamily: fonts.regular,
-    fontSize: normalizeSize(13),
-    color: colors.purplishGrey,
+    fontSize: 13,
+    color: MUTED,
     textAlign: 'center',
-    paddingVertical: normalizeSize(16),
+    paddingVertical: 16,
   },
-  tableRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: normalizeSize(8),
+    paddingVertical: 10,
+  },
+  rowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1E9DB',
   },
   rowMain: {
     fontFamily: fonts.bold,
-    fontSize: normalizeSize(13),
-    color: colors.text,
+    fontSize: 13,
+    color: INK,
   },
   rowSub: {
     fontFamily: fonts.regular,
-    fontSize: normalizeSize(11),
-    color: colors.purplishGrey,
+    fontSize: 11,
+    color: MUTED,
     marginTop: 1,
   },
   rowValue: {
     fontFamily: fonts.bold,
-    fontSize: normalizeSize(13),
-    color: colors.text,
-    marginRight: normalizeSize(8),
+    fontSize: 13,
+    color: INK,
+    marginRight: 8,
   },
   badge: {
-    paddingHorizontal: normalizeSize(8),
-    paddingVertical: normalizeSize(3),
-    borderRadius: normalizeSize(8),
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   badgeText: {
     fontFamily: fonts.bold,
-    fontSize: normalizeSize(10),
+    fontSize: 10,
+  },
+  inventoryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    columnGap: 8,
+    marginTop: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#F0E1C8',
+    backgroundColor: '#FFF8EC',
+  },
+  inventoryBtnText: {
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    color: DGOLD,
   },
 });
 

@@ -174,7 +174,7 @@ export const disconnectSocket = async () => {
   }
 };
 
-export const connectToPrinter = async (address) => {
+export const connectToPrinter = async (address, {fast = false} = {}) => {
   if (!address) throw new Error('Sin impresora seleccionada.');
   const {BluetoothManager} = requireBluetoothModule();
   await ensureBluetoothReady();
@@ -191,10 +191,10 @@ export const connectToPrinter = async (address) => {
   }
 
   // Las impresoras clones suelen rechazar el primer SPP connect tras un bond
-  // reciente, idle largo o si la lib tiene state stale. Reintentamos hasta 5
-  // veces con delays incrementales (total ~13s peor caso). Entre cada retry
-  // forzamos un disconnect() para limpiar el socket en cache del lado lib.
-  const delays = [0, 1000, 2000, 3500, 5000];
+  // reciente, idle largo o si la lib tiene state stale. Reintentamos con
+  // delays incrementales. Antes: [0,1000,2000,3500,5000] = ~13s peor caso.
+  // Bajamos a ~6.5s para reducir la latencia percibida al abrir el cajón.
+  const delays = [0, 500, 1000, 2000, 3000];
   let lastErr = null;
   for (let attempt = 0; attempt < delays.length; attempt++) {
     const delay = delays[attempt];
@@ -211,22 +211,43 @@ export const connectToPrinter = async (address) => {
     }
     try {
       await BluetoothManager.connect(address);
-      // Pequeña espera tras connect para que el socket SPP del clone se
-      // estabilice antes del primer write — algunas iSH58 rechazan el
-      // primer byte si llega inmediato al socket abierto.
-      await new Promise((r) => setTimeout(r, 300));
+      // Espera post-connect para que el socket SPP del clone se estabilice
+      // antes del primer write — algunas iSH58 rechazan el primer byte si
+      // llega inmediato. Con `fast:true` la saltamos: el comando de cajón
+      // es un pulso eléctrico simple que no necesita estabilización de
+      // bitmap/encoding como el recibo.
+      if (!fast) {
+        await new Promise((r) => setTimeout(r, 300));
+      }
       return;
     } catch (e) {
       lastErr = e;
     }
   }
-  // Si tras 5 intentos sigue fallando, agregamos hint al mensaje para que
-  // el user sepa que probablemente la impresora necesita reset físico.
+  // Si tras todos los intentos sigue fallando, agregamos hint al mensaje
+  // para que el user sepa que la impresora probablemente necesita reset.
   const baseMsg = (lastErr && (lastErr.message || lastErr.code || String(lastErr))) || 'Unable to connect device';
   throw new Error(
     baseMsg +
       ' — Si persiste, apagá y volvé a prender la impresora, después intentá de nuevo.',
   );
+};
+
+// Pre-warming: usado al entrar a la pantalla de confirmación. Dispara un
+// connectLight en background para que cuando el cajero toque "Finalizar
+// venta", el socket SPP ya esté caliente y el pulso del cajón llegue de
+// inmediato. Best-effort, errores silenciosos.
+export const prewarmPrinter = () => {
+  if (!PRINTING_IS_AVAILABLE) return;
+  (async () => {
+    try {
+      const {address} = await getPrinterPrefs();
+      if (!address) return;
+      await connectLight(address);
+    } catch (e) {
+      // best-effort, no bloquea.
+    }
+  })();
 };
 
 // Conexión liviana para el keep-alive: si ya está conectado usa ese socket;
@@ -254,12 +275,12 @@ const connectLight = async (address) => {
 // estado interno, que puede quedar stale tras un timeout/idle y hace que
 // los siguientes prints fallen con "Unable to connect device".
 // El retry interno de connectToPrinter es suficiente para los casos comunes.
-const ensureConnected = async () => {
+const ensureConnected = async ({fast = false} = {}) => {
   const {address} = await getPrinterPrefs();
   if (!address) {
     throw new Error('No hay impresora configurada. Vé a "Configurar impresora" en el menú.');
   }
-  await connectToPrinter(address);
+  await connectToPrinter(address, {fast});
   return address;
 };
 
@@ -267,7 +288,9 @@ export const openCashDrawer = async () => {
   printJobInProgress = true;
   try {
     const {BluetoothEscposPrinter} = requireBluetoothModule();
-    await ensureConnected();
+    // fast:true → sin esperar 300ms post-connect: el pulso del cajón es un
+    // byte simple, no necesita estabilización del bitmap del recibo.
+    await ensureConnected({fast: true});
     // writeRawBase64 está parcheado nativamente — manda bytes raw vía el socket
     // SPP abierto, único camino para el comando ESC p (no expuesto por la lib).
     await BluetoothEscposPrinter.writeRawBase64(DRAWER_BYTES_B64);
@@ -305,26 +328,61 @@ const collapseSegments = (segments) => {
   return out;
 };
 
+// Timeout duro para que un job atascado (impresora sin papel, firmware
+// colgado) no quede esperando indefinido y deje `printJobInProgress` en
+// true, bloqueando el siguiente recibo y al keep-alive.
+const PRINT_RECEIPT_TIMEOUT_MS = 8000;
+
+const printReceiptInner = async (saleData, {openDrawer}) => {
+  const {BluetoothEscposPrinter} = requireBluetoothModule();
+  await ensureConnected();
+
+  // Cajón primero, aislado: si después el papel falla, el pulso ya salió.
+  if (openDrawer) {
+    try {
+      await BluetoothEscposPrinter.writeRawBase64(DRAWER_BYTES_B64);
+    } catch (e) {
+      console.log('[printer] openDrawer falló:', e?.message || e);
+    }
+  }
+
+  const segments = collapseSegments(buildReceiptCommands(saleData));
+  for (const seg of segments) {
+    await runSegment(BluetoothEscposPrinter, seg);
+  }
+};
+
 export const printReceipt = async (saleData, {openDrawer = false} = {}) => {
   printJobInProgress = true;
   try {
-    const {BluetoothEscposPrinter} = requireBluetoothModule();
-    await ensureConnected();
-
-    // Cajón primero, aislado: si después el papel falla, el pulso ya salió.
-    if (openDrawer) {
+    await Promise.race([
+      printReceiptInner(saleData, {openDrawer}),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`printReceipt timeout (${PRINT_RECEIPT_TIMEOUT_MS}ms)`)),
+          PRINT_RECEIPT_TIMEOUT_MS,
+        ),
+      ),
+    ]);
+  } catch (e) {
+    // Si fue timeout, intentamos cerrar el socket SPP para no dejar el
+    // estado interno de la lib stale. El próximo recibo arranca limpio
+    // (connectToPrinter reabre socket).
+    if (e?.message?.includes('printReceipt timeout')) {
       try {
-        await BluetoothEscposPrinter.writeRawBase64(DRAWER_BYTES_B64);
-      } catch (e) {
-        console.log('[printer] openDrawer falló:', e?.message || e);
+        const {BluetoothManager} = requireBluetoothModule();
+        if (typeof BluetoothManager.disconnect === 'function') {
+          await BluetoothManager.disconnect();
+        }
+      } catch (_) {
+        // ignore
       }
     }
-
-    const segments = collapseSegments(buildReceiptCommands(saleData));
-    for (const seg of segments) {
-      await runSegment(BluetoothEscposPrinter, seg);
-    }
+    throw e;
   } finally {
+    // Asegurar que el flag se libere SIEMPRE: aunque el job interno haya
+    // quedado pending tras el timeout, el siguiente recibo no debe quedar
+    // bloqueado a la espera.
     printJobInProgress = false;
   }
 };

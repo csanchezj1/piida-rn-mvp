@@ -46,10 +46,21 @@ const newSaleData = (state = initialState, action) => {
       return { ...state, searchButton: action.payload};
     case NEW_SALE_FORM_FAIL:
       return { ...state, errors: action.payload };
-    case NEW_SALE_PRODUCT_CHANGE:
-      return { ...state, product: action.payload, changed: new Date() };
+    case NEW_SALE_PRODUCT_CHANGE: {
+      const items = action.payload || [];
+      // Total derivado de la lista — fuente única de verdad. Antes el total
+      // se mantenía aparte con aritmética incremental, propenso a desync
+      // (resultado: TOTAL en negativo con 0 items).
+      const total = items.reduce((sum, it) => {
+        const price = parseInt(it?.price, 10) || 0;
+        const qty = parseInt(it?.qty, 10) || 0;
+        return sum + price * qty;
+      }, 0);
+      return { ...state, product: items, total, changed: new Date() };
+    }
     case NEW_SALE_TOTAL_CHANGE:
-      return { ...state, total: action.payload };
+      // No-op: total se deriva en NEW_SALE_PRODUCT_CHANGE.
+      return state;
     case NEW_SALE_CUSTOMER_CHANGE:
       return { ...state, customer: action.payload };
     case NEW_SALE_CUSTOMER_VISIBLE:
@@ -57,7 +68,17 @@ const newSaleData = (state = initialState, action) => {
     case NEW_SALE_PRODUCT_SELECTED:
       return { ...state, productSelected: action.payload };
     case NEW_SALE_CLEAR:
-      return { ...initialState };
+      // ⚠️ Spread shallow del initialState compartía la misma referencia de
+      // `product` / `searchButton`. Como varias actions hacen push/splice
+      // directo sobre state.product, después de la primer venta el array
+      // de initialState quedaba contaminado y CLEAR ya no limpiaba el
+      // carrito (total iba a 0 pero los items seguían ahí). Devolvemos
+      // nuevos arrays siempre.
+      return {
+        ...initialState,
+        product: [],
+        searchButton: [],
+      };
     default:
       return state;
   }

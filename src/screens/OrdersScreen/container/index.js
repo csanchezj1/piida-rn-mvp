@@ -3,12 +3,12 @@ import { bindActionCreators } from 'redux';
 import Component from '../component';
 import * as actionsCreators from '../actions';
 
-const mapStateToProps = ({userData, ordersData}) => {
-  const { 
+const mapStateToProps = ({userData, ordersData, activeBranchData}) => {
+  const {
     user
   } = userData;
 
-  const { 
+  const {
     list,
     requestMade,
     offset,
@@ -19,6 +19,8 @@ const mapStateToProps = ({userData, ordersData}) => {
     autoValue
   } = ordersData;
 
+  const {refetchTick = 0} = activeBranchData ?? {};
+
   return {
     user,
     list,
@@ -28,7 +30,8 @@ const mapStateToProps = ({userData, ordersData}) => {
     showRrefresh,
     listChanged,
     tabActive,
-    autoValue
+    autoValue,
+    refetchTick,
   };
 };
 

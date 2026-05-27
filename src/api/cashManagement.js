@@ -53,16 +53,27 @@ function checkBalance({
 }
 
 function getCashStatus({
-  token
+  token,
+  uid,
 }) {
+  // Pasamos uid como query param para que el back filtre por usuario.
+  // El `t` rompe el cache HTTP de okhttp: el back devuelve 304 Not Modified
+  // si el etag coincide y el cliente sirve el body cacheado, pero ese body
+  // puede ser de antes que el turno se reflejara (p.ej. estado stale tras
+  // abrir caja desde la web). Forzamos miss-cache con un timestamp único.
+  const params = [`t=${Date.now()}`];
+  if (uid != null) params.push(`uid=${encodeURIComponent(uid)}`);
   return request({
-    url: 'api/v2/cash/status',
+    url: `api/v2/cash/status?${params.join('&')}`,
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
       'x-CSRF-Token': token,
       Authorization: Authorization,
-      Accept: 'application/json'
+      Accept: 'application/json',
+      // Defensa adicional contra cualquier caché intermedio (proxies, etc.).
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
     }
   });
 }

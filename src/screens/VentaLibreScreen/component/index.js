@@ -14,6 +14,7 @@ import { Button, Icon, IconButton, Text, TextInput as PaperTextInput } from 'rea
 import { NumericFormat } from 'react-number-format';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { Keypad, SaleKitItem, SaleProductItem } from '../../../components';
+import { DialogContainer } from '../../../layouts';
 import { colors, fonts, normalizeSize } from '../../../styles/basicStyles';
 import { registerEventScreenMounted } from '../../../utils/analytics';
 import Movements from '../../../api/movements';
@@ -110,7 +111,7 @@ class VentaLibreScreen extends Component {
     // navegar para que la venta lleve el último monto del teclado también.
     this.flushPendingKeypadToProduct();
     if (this.RBSheet) this.RBSheet.close();
-    setTimeout(() => this.props.navigation.navigate(route), 100);
+    setTimeout(() => this.props.navigation.navigate(route, {from: 'VentaLibre'}), 100);
   };
 
   openPaymentSheet = () => {
@@ -167,15 +168,26 @@ class VentaLibreScreen extends Component {
             <Text style={t.valueLabel}>VALOR DEL ARTÍCULO</Text>
             <View style={t.valueRow}>
               <Text style={t.valueSign}>$</Text>
-              <NumericFormat
-                value={valueInt}
-                displayType="text"
-                thousandSeparator="."
-                decimalSeparator=","
-                renderText={(v) => (
-                  <Text style={[t.valueBig, !isZero && t.valueBigActive]}>{v}</Text>
-                )}
-              />
+              <View style={{flex: 1, minWidth: 0}}>
+                <NumericFormat
+                  value={valueInt}
+                  displayType="text"
+                  thousandSeparator="."
+                  decimalSeparator=","
+                  renderText={(v) => (
+                    // numberOfLines + adjustsFontSizeToFit evita que valores
+                    // grandes (ej. $20.000.000) se rompan en dos líneas.
+                    <Text
+                      style={[t.valueBig, !isZero && t.valueBigActive]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.5}
+                      allowFontScaling={false}>
+                      {v}
+                    </Text>
+                  )}
+                />
+              </View>
               <Text style={t.valueCop}>COP</Text>
             </View>
           </View>
@@ -254,7 +266,7 @@ class VentaLibreScreen extends Component {
           onPress={
             customer
               ? () => this.props.actions.customerVisible(true)
-              : () => this.props.navigation.navigate('Provider', { from: 'customer' })
+              : () => this.props.navigation.navigate('Clients', { from: 'customer' })
           }>
           <View style={t.customerIcon}>
             <Icon
@@ -390,22 +402,40 @@ class VentaLibreScreen extends Component {
       <SafeAreaView style={t.root}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-        {/* Header */}
+        {/* Header — 3 columnas: X+badge a la izquierda, pills centrados, terminal a la derecha. */}
         <View style={t.header}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={t.closeBtn}
-            onPress={() => this.props.navigation.goBack()}>
-            <Text style={t.closeBtnText}>✕</Text>
-          </TouchableOpacity>
-          <Text style={t.headerTitle}>Venta libre</Text>
-          <View style={t.headerBadge}>
-            <Text style={t.headerBadgeText}>
-              {this.state.saleNumber != null ? `VENTA #${this.state.saleNumber}` : 'VENTA'}
-            </Text>
+          <View style={t.headerLeft}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={t.closeBtn}
+              onPress={() => this.props.navigation.navigate('AdvancedReports')}>
+              <Text style={t.closeBtnText}>✕</Text>
+            </TouchableOpacity>
+            <View style={t.headerBadge}>
+              <Text style={t.headerBadgeText}>
+                {this.state.saleNumber != null ? `VENTA #${this.state.saleNumber}` : 'VENTA'}
+              </Text>
+            </View>
           </View>
-          <View style={{ flex: 1 }} />
-          <Text style={t.headerSub}>Terminal · Mostrador 1</Text>
+
+          {/* Toggle Libre / Catálogo — centrado */}
+          <View style={t.modePillsWrap}>
+            <View style={[t.modePill, t.modePillActive]}>
+              <View style={t.modePillDot} />
+              <Text style={t.modePillTextActive}>Venta libre</Text>
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.75}
+              style={t.modePill}
+              onPress={() => this.props.navigation.navigate('BottomMenu', {screen: 'Home'})}>
+              <View style={t.modePillDotInactive} />
+              <Text style={t.modePillText}>Catálogo</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={t.headerRight}>
+            <Text style={t.headerSub}>Terminal · Mostrador 1</Text>
+          </View>
         </View>
 
         {/* Split body */}
@@ -468,7 +498,7 @@ class VentaLibreScreen extends Component {
           <IconButton
             icon="close"
             size={normalizeSize(28)}
-            onPress={() => this.props.navigation.goBack()}
+            onPress={() => this.props.navigation.navigate('BottomMenu')}
             iconColor={colors.text}
             style={{ margin: 0 }}
           />
@@ -554,7 +584,7 @@ class VentaLibreScreen extends Component {
                   this.RBSheet.close();
                 }
                 : () => {
-                  this.props.navigation.navigate('Provider', { from: 'customer' });
+                  this.props.navigation.navigate('Clients', { from: 'customer' });
                   this.RBSheet.close();
                 }
             }>
@@ -646,10 +676,139 @@ class VentaLibreScreen extends Component {
     );
   }
 
+  renderCashBlocked() {
+    // Misma regla que NewSale (catálogo): sin caja abierta no se vende.
+    // Layout simple full-screen con CTA "Abrir caja" → pantalla Box.
+    return (
+      <SafeAreaView style={{flex: 1, backgroundColor: T.bg}}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24}}>
+          <View style={{
+            width: '100%', maxWidth: 420, backgroundColor: '#FFFFFF',
+            borderRadius: 20, padding: 28, alignItems: 'center',
+            shadowColor: '#3C1E0A', shadowOffset: {width: 0, height: 4},
+            shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
+          }}>
+            <View style={{
+              width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFF4EB',
+              alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+            }}>
+              <Icon source="cash-register" size={32} color="#C66E00" />
+            </View>
+            <Text style={{
+              fontFamily: fonts.bold, fontSize: 18, color: T.text, textAlign: 'center', marginBottom: 8,
+            }}>Aún no puedes registrar ventas</Text>
+            <Text style={{
+              fontFamily: fonts.regular, fontSize: 14, color: T.textMuted,
+              textAlign: 'center', marginBottom: 20, lineHeight: 20,
+            }}>
+              Debes iniciar tu turno antes de registrar una venta. Inicia tu
+              turno abriendo la caja.
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => this.props.navigation.navigate('Box', {type: 'openBox'})}
+              style={{
+                backgroundColor: T.accent, borderRadius: 14,
+                paddingHorizontal: 28, paddingVertical: 14,
+              }}>
+              <Text style={{fontFamily: fonts.bold, fontSize: 15, color: '#FFFFFF'}}>
+                Abrir caja
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => this.props.navigation.navigate('BottomMenu')}
+              style={{marginTop: 14}}>
+              <Text style={{fontFamily: fonts.semiBold, fontSize: 13, color: T.textMuted}}>
+                Volver al inicio
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Dialog de cliente (mismo patrón que NewSaleScreen). Cuando hay cliente
+  // y tocás la card "Cliente: ...", abre este dialog con datos + acción
+  // "Remover cliente de la venta".
+  renderCustomerDialog() {
+    const { customer, customerVisible, actions } = this.props;
+    if (!customer) return null;
+    const row = (label, value) => {
+      if (!value) return null;
+      return (
+        <View style={cd.row} key={label}>
+          <Text style={cd.label}>{label}</Text>
+          <Text style={cd.value}>{value}</Text>
+        </View>
+      );
+    };
+    return (
+      <DialogContainer visible={customerVisible} style={cd.dialog}>
+        <TouchableOpacity
+          style={cd.close}
+          onPress={() => actions.customerVisible(false)}>
+          <Icon source="close" size={22} color={T.text} />
+        </TouchableOpacity>
+        <Text style={cd.title}>Datos del cliente</Text>
+        {row('Nombre', customer.label)}
+        {row('Número telefónico', customer.phone)}
+        {row('Número de identificación', customer.id_number)}
+        {row('Dirección', customer.address)}
+        {row('Correo electrónico', customer.email)}
+        <TouchableOpacity
+          style={cd.remove}
+          onPress={() => actions.removeCustomer()}>
+          <Icon source="account-remove-outline" size={18} color="#D33A2A" />
+          <Text style={cd.removeTxt}>Remover cliente de la venta</Text>
+        </TouchableOpacity>
+      </DialogContainer>
+    );
+  }
+
   render() {
-    return isTabletNow() ? this.renderTablet() : this.renderPhone();
+    // Sin turno abierto → bloquear venta. Branch-aware vía cashShiftActiveId.
+    const hasOpenShift =
+      (Number(this.props.cashShiftActiveId) || 0) > 0 ||
+      (Number(this.props.user?.cash_id) || 0) > 0;
+    if (!hasOpenShift) return this.renderCashBlocked();
+    return (
+      <>
+        {isTabletNow() ? this.renderTablet() : this.renderPhone()}
+        {this.renderCustomerDialog()}
+      </>
+    );
   }
 }
+
+// Estilos del dialog de cliente. Override del DialogContainer global cuyo
+// `confirm` por defecto fuerza height=screenHeight-150 + marginHorizontal:16
+// (pensado para dialogs grandes tipo formulario). Acá queremos un card
+// compacto centrado, así que reseteamos height/width/margin.
+const cd = StyleSheet.create({
+  dialog: {
+    height: undefined,
+    maxHeight: '85%',
+    alignSelf: 'center',
+    width: '88%',
+    maxWidth: 460,
+    marginHorizontal: 0,
+    borderRadius: 20,
+    paddingTop: 18,
+    paddingBottom: 14,
+    paddingHorizontal: 22,
+    backgroundColor: '#FFFFFF',
+  },
+  close: {position: 'absolute', top: 10, right: 10, width: 32, height: 32, alignItems: 'center', justifyContent: 'center', zIndex: 2},
+  title: {fontFamily: fonts.bold, fontSize: 16, color: '#1A1410', marginBottom: 12, marginTop: 4},
+  row: {marginBottom: 10},
+  label: {fontFamily: fonts.bold, fontSize: 11, color: '#8C6F60', letterSpacing: 0.5, marginBottom: 2},
+  value: {fontFamily: fonts.regular, fontSize: 14, color: '#1A1410'},
+  remove: {flexDirection: 'row', alignItems: 'center', columnGap: 6, marginTop: 6, paddingVertical: 8},
+  removeTxt: {fontFamily: fonts.semiBold, fontSize: 13, color: '#D33A2A'},
+});
 
 // ─── Tablet styles ────────────────────────────────────────────
 // ─── Estilos tablet — traducidos 1:1 del diseño HTML (canvas 1280×800).
@@ -694,6 +853,41 @@ const t = StyleSheet.create({
     letterSpacing: -0.3,
     marginLeft: 16,
   },
+  // Toggle modo de venta — pills al estilo segmented control. La activa
+  // (Venta libre) en negro, la otra outline → toca y navega al catálogo.
+  // Centrados horizontalmente en el header gracias a la columna intermedia.
+  headerLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 8,
+  },
+  headerRight: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  modePillsWrap: {
+    flexDirection: 'row',
+    backgroundColor: BEIGE,
+    borderRadius: 999,
+    padding: 4,
+    columnGap: 4,
+  },
+  modePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  modePillActive: {backgroundColor: T.text},
+  modePillDot: {width: 8, height: 8, borderRadius: 4, backgroundColor: T.accent},
+  modePillDotInactive: {width: 8, height: 8, borderRadius: 4, backgroundColor: T.textDim, opacity: 0.5},
+  modePillText: {fontFamily: fonts.semiBold, fontSize: 12, color: T.textMuted},
+  modePillTextActive: {fontFamily: fonts.bold, fontSize: 12, color: WHITE},
   headerBadge: {
     backgroundColor: BEIGE,
     borderRadius: 999,
@@ -715,9 +909,11 @@ const t = StyleSheet.create({
 
   body: { flex: 1, flexDirection: 'row' },
 
-  // ── Panel izquierdo (keypad) — 840/1260 ≈ flex 2 ──
+  // ── Panel izquierdo (keypad) — proporción igual a ConfirmCashOrder
+  // (560/1260 ≈ 44%) para liberar espacio al panel derecho. Era flex:2
+  // antes de igualarlo al diseño de Pago en efectivo.
   leftPane: {
-    flex: 2,
+    flex: 560,
     paddingVertical: 20,
     paddingHorizontal: 32,
     backgroundColor: T.bg,
@@ -725,14 +921,17 @@ const t = StyleSheet.create({
   },
 
   // Card: Valor del artículo
+  // alignItems:'flex-start' sube el botón "Agregar nota" para que quede en
+  // la misma línea visual que el label "VALOR DEL ARTÍCULO".
   valueCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     backgroundColor: WHITE,
     borderRadius: 22,
     paddingVertical: 18,
     paddingHorizontal: 24,
+    columnGap: 16,
   },
   valueLabel: {
     fontFamily: fonts.bold,
@@ -798,12 +997,21 @@ const t = StyleSheet.create({
     flexDirection: 'row',
     columnGap: 14,
   },
+  // Estilo igualado al keypad de ConfirmCashOrder: borde sutil + sombra
+  // suave para que las teclas se vean elevadas sobre el beige del panel.
   kbKey: {
     flex: 1,
     backgroundColor: WHITE,
     borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#F3ECE0',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#3C1E0A',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   kbKeyText: {
     fontFamily: fonts.semiBold,
@@ -830,9 +1038,10 @@ const t = StyleSheet.create({
     color: WHITE,
   },
 
-  // ── Panel derecho (venta actual) — 420/1260 ≈ flex 1 ──
+  // ── Panel derecho (venta actual) — proporción igual a ConfirmCashOrder
+  // (700/1260 ≈ 56%) tras compactar el keypad.
   rightPane: {
-    flex: 1,
+    flex: 700,
     backgroundColor: WHITE,
   },
   rightHeader: {

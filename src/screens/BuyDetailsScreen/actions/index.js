@@ -109,12 +109,16 @@ export const reprintReceipt = (details) => {
   };
 };
 
-export const deleteMovement = (nid, navigation) => {
-  return (dispatch) => {
+export const deleteMovement = (nid, navigation, reason) => {
+  return (dispatch, getState) => {
     dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: true });
+    const uid = getState().userData?.user?.uid;
     Token.getToken()
       .then(token => {
-        Movements.deleteMovement({ token, nid })
+        // El back v2 requiere reason (motivo) y uid (usuario que cancela).
+        // Si vino reason vacío usamos texto por defecto para no fallar — pero
+        // el component muestra modal pidiendo motivo antes de invocar.
+        Movements.deleteMovement({ token, nid, reason: reason || 'Cancelado desde la app', uid })
           .then(res => {
             dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
             if (res.success) {

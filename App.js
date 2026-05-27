@@ -3,7 +3,8 @@ import {Provider} from 'react-redux';
 import {PersistGate} from 'redux-persist/integration/react';
 import {PaperProvider} from 'react-native-paper';
 import {store, persistor} from './src/store';
-import { Platform } from 'react-native';
+import { Platform, Text as RNText, TextInput as RNTextInput } from 'react-native';
+import { Text as PaperText } from 'react-native-paper';
 import { requestTrackingPermission } from 'react-native-tracking-transparency';
 import { Settings } from 'react-native-fbsdk-next';
 import {Dimensions} from 'react-native';
@@ -21,18 +22,29 @@ import { startPrinterKeepAlive, stopPrinterKeepAlive } from './src/utils/printin
 // el módulo de App — ANTES del primer render para garantizar disponibilidad.
 setApiStore(store);
 
+// Deshabilita el font scaling global del sistema: si el cajero agranda la
+// letra desde Ajustes → Pantalla → Tamaño de fuente, los layouts (KPIs,
+// tablas, headers) se rompen porque están dimensionados a px fijos. Para
+// mantener consistencia POS fijamos allowFontScaling=false en los defaults
+// de Text y TextInput (tanto RN como Paper) — pantallas individuales pueden
+// override pasando allowFontScaling=true cuando lo necesiten.
+if (!RNText.defaultProps) RNText.defaultProps = {};
+RNText.defaultProps.allowFontScaling = false;
+if (!RNTextInput.defaultProps) RNTextInput.defaultProps = {};
+RNTextInput.defaultProps.allowFontScaling = false;
+if (PaperText && !PaperText.defaultProps) PaperText.defaultProps = {};
+if (PaperText && PaperText.defaultProps) PaperText.defaultProps.allowFontScaling = false;
+
 
 class App extends Component {
   async componentDidMount (){
-    // Estrategia: phones quedan locked en portrait (no queremos rotar layouts
-    // diseñados para portrait). Tablets quedan libres para que usen su
-    // orientación natural (la TCL 10.1" no respeta lockToLandscape ni
-    // Left/Right; deja que el hardware/sensor decida). El layout responsivo
-    // se encarga de mostrar split o single-column según `width >= height`.
+    // Estrategia: phones → portrait (los layouts originales fueron
+    // diseñados para esa orientación). Tablets → landscape (rediseño POS
+    // tablet de mostrador). Detectamos por shortest-side >= 500dp.
     const {width, height} = Dimensions.get('window');
     const isTablet = Math.min(width, height) >= 500;
     if (isTablet) {
-      Orientation.unlockAllOrientations();
+      Orientation.lockToLandscape();
     } else {
       Orientation.lockToPortrait();
     }

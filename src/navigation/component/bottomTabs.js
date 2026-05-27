@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {HomeScreen, BalanceScreen, InventoryScreen, NewSaleScreen} from '../../screens';
+import {AdvancedReportsScreen, BalanceScreen, InventoryScreen, NewSaleScreen} from '../../screens';
 import { Image, TouchableOpacity, Text, View, StatusBar} from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -7,6 +7,7 @@ import {getBottomStyles} from '../../styles/menuStyles';
 import { colors, fonts } from '../../styles/basicStyles';
 import { Header } from '../../components';
 import { FloatingAction } from "react-native-floating-action";
+import fabRef from '../../utils/fabRef';
 
 const Tab = createBottomTabNavigator();
 const styles = getBottomStyles();
@@ -80,6 +81,9 @@ function BottomMenu({ state, descriptors, navigation }) {
 }
 
 function BottomTabs({otherProps, navigation}) {
+  // En la pestaña Reportes se oculta el FAB naranja: ahí el sidebar del
+  // AppShell ya tiene su propio botón "+" que abre este mismo speed-dial.
+  const [currentTab, setCurrentTab] = React.useState('Home');
   // Multi-sucursal: el FAB consulta el estado del turno SCOPED a la sucursal
   // activa (cashShiftActiveId viene de cashShiftData en Redux, refrescado
   // contra el server). Ya no leemos otherProps.user.cash_id porque era
@@ -167,33 +171,40 @@ function BottomTabs({otherProps, navigation}) {
       <Tab.Navigator
         initialRouteName={'Home'}
         backBehavior={'none'}
-        tabBar={props => <BottomMenu otherProps={otherProps} {...props} />}>
+        screenListeners={{
+          state: (e) => {
+            const st = e.data && e.data.state;
+            if (st && st.routes && st.index != null) {
+              setCurrentTab(st.routes[st.index].name);
+            }
+          },
+        }}
+        tabBar={props => {
+          // Pantallas con AppShell (sidebar negro) → sin tabbar inferior.
+          // Statistics, Home y Balance ya usan AppShell.
+          const name = props.state.routes[props.state.index].name;
+          return name === 'Statistics' || name === 'Home' || name === 'Balance'
+            ? null
+            : <BottomMenu otherProps={otherProps} {...props} />;
+        }}>
         <Tab.Screen
           name="Home"
           component={NewSaleScreen}
           options={{
             title: 'Venta',
-            unmountOnBlur:true,  
-            header:() => (
-              <Header
-                showHeader={true}
-                onMore={() => otherProps.actions.showDrawer(true)}
-              />
-            ), 
+            unmountOnBlur: true,
+            // El rediseño 12 trae su propio header (← Nueva venta · Venta
+            // libre); ocultamos el Header viejo para no duplicarlo.
+            headerShown: false,
           }}
         />
         <Tab.Screen
           name="Statistics"
-          component={HomeScreen}
+          component={AdvancedReportsScreen}
           options={{
             title: 'Reportes',
-            unmountOnBlur:true,  
-            header:() => (
-              <Header
-                showHeader={true}
-                onMore={() => otherProps.actions.showDrawer(true)}
-              />
-            ), 
+            unmountOnBlur: true,
+            headerShown: false,
           }}
         />
         <Tab.Screen
@@ -201,13 +212,10 @@ function BottomTabs({otherProps, navigation}) {
           component={BalanceScreen}
           options={{
             title: 'Movimientos',
-            unmountOnBlur:true,  
-            header:() => (
-              <Header
-                showHeader={true}
-                onMore={() => otherProps.actions.showDrawer(true)}
-              />
-            ), 
+            unmountOnBlur:true,
+            // El rediseño 31 envuelve Balance en AppShell con su propio
+            // sub-header (back + título + saldo). Sin Header de tab.
+            headerShown: false,
           }}
         />
         <Tab.Screen
@@ -227,7 +235,8 @@ function BottomTabs({otherProps, navigation}) {
       </Tab.Navigator>
 
       <FloatingAction
-        //ref={(ref) => {floatingAction = ref}}
+        ref={(ref) => {fabRef.current = ref}}
+        visible={currentTab !== 'Statistics' && currentTab !== 'Home' && currentTab !== 'Balance'}
         distanceToEdge={styles.distanceToEdge}
         color={styles.color}
         overlayColor={'rgba(68,68,68,0.9)'}

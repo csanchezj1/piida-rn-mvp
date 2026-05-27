@@ -172,9 +172,17 @@ function getMovementsPurchase(pp_id, offset) {
 	});
 }
 
-function getMovementsWarehouse(pp_id, offset) {
-	return request({
-    url:`api/movements-warehouse/${pp_id}?offset=${offset}`,
+function getMovementsWarehouse(pp_id, offset, opts) {
+  // opts opcional: {from: 'YYYY-MM-DD', to: 'YYYY-MM-DD', type: 'in'|'out'|enum, limit: number}
+  const params = [`offset=${offset}`];
+  if (opts) {
+    if (opts.from) params.push(`from=${encodeURIComponent(opts.from)}`);
+    if (opts.to) params.push(`to=${encodeURIComponent(opts.to)}`);
+    if (opts.type && opts.type !== 'all') params.push(`type=${encodeURIComponent(opts.type)}`);
+    if (opts.limit) params.push(`limit=${opts.limit}`);
+  }
+  return request({
+    url:`api/movements-warehouse/${pp_id}?${params.join('&')}`,
 		method: 'GET',
     headers: {
       'Content-Type': 'application/json',

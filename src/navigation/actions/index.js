@@ -20,6 +20,7 @@ import {
   BRANCH_SET_LIST,
   CASH_SHIFT_SET,
   CASH_SHIFT_CLEAR,
+  USER_BRANCH_PATCH,
 } from '../../utils/constants';
 
 export const showDrawer = (show) => {
@@ -104,7 +105,7 @@ export const showBranchModal = (visible) => {
 };
 
 export const setActiveBranch = (id) => {
-  return (dispatch) => {
+  return (dispatch, getState) => {
     dispatch({ type: BRANCH_SET_ACTIVE, payload: id });
     dispatch({ type: BRANCH_MODAL_VISIBLE, payload: false });
     dispatch({ type: NAVIGATION_SHOW_DRAWER, payload: false });
@@ -114,6 +115,22 @@ export const setActiveBranch = (id) => {
     // muestre por un instante el shift de la sucursal anterior.
     dispatch({ type: CASH_SHIFT_CLEAR });
     dispatch(refreshCashStatus());
+    // Parche user.branch_office* con la branch elegida para que las pantallas
+    // que muestran "Sede X" lo vean al instante. La lista de branches viene
+    // del slice activeBranchData (fetched en login y refreshBranches).
+    const branches = getState().activeBranchData?.branches ?? [];
+    const target = branches.find((b) => Number(b.id) === Number(id));
+    if (target) {
+      dispatch({
+        type: USER_BRANCH_PATCH,
+        payload: {
+          id: target.id,
+          name: target.name,
+          phone: target.phone ?? null,
+          address: target.address ?? null,
+        },
+      });
+    }
   };
 };
 
@@ -128,8 +145,11 @@ export const setActiveBranch = (id) => {
 export const refreshCashStatus = () => {
   return (dispatch, getState) => {
     const branchId = getState().activeBranchData?.activeBranchId ?? null;
+    // Pasamos uid para que el back filtre el turno por usuario (la app usa
+    // Basic auth y sin uid devuelve cualquier turno activo de la branch).
+    const uid = getState().userData?.user?.uid ?? null;
     TokenAPI.getToken()
-      .then((token) => CashManagement.getCashStatus({ token }))
+      .then((token) => CashManagement.getCashStatus({ token, uid }))
       .then((response) => {
         dispatch({
           type: CASH_SHIFT_SET,

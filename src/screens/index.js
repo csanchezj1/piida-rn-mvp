@@ -42,6 +42,9 @@ import ProductsScreen from './ProductsScreen/container';
 import PrinterSettingsScreen from './PrinterSettingsScreen/container';
 import BillingScreen from './BillingScreen/container';
 import VentaLibreScreen from './VentaLibreScreen/container';
+import ClientsScreen from './ClientsScreen/container';
+import BranchesScreen from './BranchesScreen/container';
+import ProvidersScreen from './ProvidersScreen/container';
 import AdvancedReportsScreen from './AdvancedReportsScreen';
 
 export {
@@ -89,5 +92,8 @@ export {
   PrinterSettingsScreen,
   BillingScreen,
   VentaLibreScreen,
+  ClientsScreen,
+  BranchesScreen,
+  ProvidersScreen,
   AdvancedReportsScreen
 };

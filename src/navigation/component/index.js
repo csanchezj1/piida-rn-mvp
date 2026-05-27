@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabs } from './bottomTabs';
 import { DrawerMenu } from './drawerMenu';
 import { BranchModal } from './branchModal';
+import { lastSaleNavTarget } from '../../utils/lastSalePref';
 import {
   Splashscreen, 
   LoginScreen,
@@ -29,6 +30,9 @@ import {
   OptionsScreen,
   CreateProductScreen,
   CreateCustomerScreen,
+  ClientsScreen,
+  BranchesScreen,
+  ProvidersScreen,
   NotificationsListScreen,
   InventoryListScreen,
   QRScanScreen,
@@ -54,6 +58,10 @@ const Stack = createNativeStackNavigator();
 function Navigation({props}){
   const navigationRef = useNavigationContainerRef();
   const lastShiftRefresh = useRef(0);
+  // Force-reset a VentaLibre al cargar la sesión. initialRouteName no
+  // alcanza si Android restauró nav state previo, así que reseteamos una
+  // vez por ciclo de login.
+  const didInitialResetRef = useRef(false);
 
   // Refresca el estado del turno cuando:
   //   - El usuario se loguea (props.user vuelve a estar)
@@ -65,6 +73,30 @@ function Navigation({props}){
       lastShiftRefresh.current = Date.now();
     }
   }, [props.user, props.activeBranchId]);
+
+  // Una vez que el splash termina y el usuario está logueado, navegar a la
+  // pantalla de venta que el cajero usó la última vez (VentaLibre o catálogo
+  // dentro de BottomMenu). Lee `lastSaleScreen` del AsyncStorage. Default
+  // 'NewSale' → BottomMenu/Home.
+  useEffect(() => {
+    if (!props.user) {
+      didInitialResetRef.current = false;
+      return;
+    }
+    if (props.isLoading) return;
+    if (didInitialResetRef.current) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      if (cancelled || !navigationRef.isReady()) return;
+      const target = await lastSaleNavTarget();
+      const route = target.route === 'BottomMenu'
+        ? {name: 'BottomMenu', params: target.params}
+        : {name: target.route};
+      navigationRef.reset({index: 0, routes: [route]});
+      didInitialResetRef.current = true;
+    }, 50);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [props.user, props.isLoading]);
 
   // Refresca el estado del turno cada vez que el usuario navega — throttled
   // a 1 vez cada 5s para no spamear. Cubre el caso "web cerró la caja
@@ -98,7 +130,7 @@ function Navigation({props}){
             screenOptions={{
               headerBackButtonDisplayMode: 'minimal',
             }}
-            initialRouteName='BottomMenu'>
+            initialRouteName='VentaLibre'>
             <Stack.Screen
               name="BottomMenu"
               options={() => ({
@@ -110,24 +142,18 @@ function Navigation({props}){
               name="Buy"
               component={BuyScreen}
               options={() =>({
+                // Rediseño 32: AppShell + sub-header propio.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
             <Stack.Screen
               name="Transfer"
               component={TransferScreen}
               options={() =>({
+                // Rediseño 38: AppShell + sub-header propio.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
             <Stack.Screen
@@ -158,12 +184,9 @@ function Navigation({props}){
               name="CreateProvider"
               component={CreateProviderScreen}
               options={() =>({
+                // Rediseño 39: AppShell + sub-header propio.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
             <Stack.Screen
@@ -171,11 +194,7 @@ function Navigation({props}){
               component={CreateProductScreen}
               options={() =>({
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
+                headerShown: false,
               })}
             />
             <Stack.Screen
@@ -183,47 +202,61 @@ function Navigation({props}){
               component={AddInventoryScreen}
               options={() =>({
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
+                headerShown: false,
               })}
             />
             <Stack.Screen
               name="CreateCustomer"
               component={CreateCustomerScreen}
               options={() =>({
+                // Rediseño 29: AppShell + sub-header propio (back custom).
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
+              })}
+            />
+            <Stack.Screen
+              name="Clients"
+              component={ClientsScreen}
+              options={() =>({
+                // Rediseño tablet 26: AppShell + sub-header propio.
+                headerShown: false,
+                animation: 'slide_from_left',
+              })}
+            />
+            <Stack.Screen
+              name="Branches"
+              component={BranchesScreen}
+              options={() =>({
+                // Rediseño tablet 28: AppShell + sub-header propio.
+                headerShown: false,
+                animation: 'slide_from_left',
+              })}
+            />
+            <Stack.Screen
+              name="Providers"
+              component={ProvidersScreen}
+              options={() =>({
+                // Rediseño tablet 27: AppShell + sub-header propio.
+                headerShown: false,
+                animation: 'slide_from_left',
               })}
             />
             <Stack.Screen
               name="BuyDetails"
               component={BuyDetailsScreen}
               options={() =>({
+                // Rediseño 37: AppShell + sub-header propio.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false,
               })}
             />
              <Stack.Screen
               name="TransferDetails"
               component={TransferDetailsScreen}
               options={() =>({
+                // Rediseño 40: AppShell + sub-header propio.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false,
               })}
             />
             <Stack.Screen
@@ -231,11 +264,7 @@ function Navigation({props}){
               component={OrderDetailsScreen}
               options={() =>({
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false,
+                headerShown: false,
               })}
             />
             <Stack.Screen
@@ -278,12 +307,9 @@ function Navigation({props}){
               name="ConfirmOrder"
               component={ConfirmOrderScreen}
               options={() =>({
+                // El rediseño 13 trae su propio AppShell + sub-header.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
              <Stack.Screen
@@ -302,36 +328,28 @@ function Navigation({props}){
               name="PrinterSettings"
               component={PrinterSettingsScreen}
               options={() =>({
+                // Rediseño 35: AppShell + sub-header propio.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
             <Stack.Screen
               name="Billing"
               component={BillingScreen}
               options={() =>({
+                // Rediseño 34: AppShell + sub-header propio.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
             <Stack.Screen
               name="AdvancedReports"
               component={AdvancedReportsScreen}
               options={() =>({
+                // El rediseño 08 trae su propio AppShell + topbar. El header
+                // transparente del Stack tapaba la topbar y le comía los taps.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
             <Stack.Screen
@@ -339,56 +357,40 @@ function Navigation({props}){
               component={VentaLibreScreen}
               options={() => ({
                 headerShown: false,
-                animation: 'slide_from_bottom',
-                presentation: 'fullScreenModal',
               })}
             />
             <Stack.Screen
               name="PayOrder"
               component={PayOrderScreen}
               options={() =>({
+                // Rediseño 16: AppShell + sub-header propio.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
             <Stack.Screen
               name="OrdersHistory"
               component={OrdersScreen}
               options={() =>({
+                // El rediseño 14 trae su propio AppShell + sub-header.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:'black',
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
             <Stack.Screen
               name="NotificationsList"
               component={NotificationsListScreen}
-              options={() =>({
+              options={{
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
-              })}
+                headerShown: false,
+              }}
             />
             <Stack.Screen
               name="Products"
               component={ProductsScreen}
               options={() =>({
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
+                headerShown: false,
               })}
             />
             <Stack.Screen
@@ -396,11 +398,7 @@ function Navigation({props}){
               component={InventoryListScreen}
               options={() =>({
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
+                headerShown: false,
               })}
             />
             <Stack.Screen
@@ -431,12 +429,9 @@ function Navigation({props}){
               name="Box"
               component={BoxScreen}
               options={() =>({
+                // Rediseño 30: AppShell + sub-header propio.
+                headerShown: false,
                 animation: 'slide_from_left',
-                headerTransparent: true,
-                headerTintColor:colors.buttonBackground,
-                title:'',
-                headerShadowVisible:false,
-                headerBackTitleVisible: false
               })}
             />
             <Stack.Screen

@@ -5,6 +5,8 @@ import {
   TRANSFER_CLEAR,
   TRANSFER_FORM_FAIL,
   TRANSFER_OBS_CHANGE,
+  TRANSFER_ORIGIN_INVENTORY,
+  TRANSFER_ORIGIN_LOADING,
 } from '../../../utils/constants';
 
 const initialState = {
@@ -13,7 +15,9 @@ const initialState = {
   qty: null,
   obs:null,
   errors:null,
-  changed:null
+  changed:null,
+  originInventory: null,
+  originLoading: false,
 };
 
 const transferData = (state = initialState, action) => {
@@ -28,6 +32,10 @@ const transferData = (state = initialState, action) => {
       return { ...state, obs: action.payload };
     case TRANSFER_FORM_FAIL:
       return { ...state, errors: action.payload };
+    case TRANSFER_ORIGIN_INVENTORY:
+      return { ...state, originInventory: action.payload };
+    case TRANSFER_ORIGIN_LOADING:
+      return { ...state, originLoading: action.payload };
     case TRANSFER_CLEAR:
       return { ...initialState };
     default:

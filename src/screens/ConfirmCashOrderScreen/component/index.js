@@ -8,6 +8,7 @@ import { Layout } from '../../../layouts';
 import { NumericFormat } from 'react-number-format';
 import { colors, fonts, normalizeSize } from '../../../styles/basicStyles';
 import Movements from '../../../api/movements';
+import {prewarmPrinter} from '../../../utils/printing/printerService';
 
 // Split tablet sólo cuando la pantalla está físicamente landscape
 // (width >= height). En portrait cae al layout phone.
@@ -47,6 +48,9 @@ class ConfirmCashOrderScreen extends Component {
 
   componentDidMount() {
     registerEventScreenMounted(this.props, 'Confirmar compra en efectivo', 'ConfirmCashOrderScreen');
+    // Caliento el socket SPP al entrar: cuando el cajero toque "Finalizar
+    // venta", el pulso del cajón llega sin la latencia del primer connect.
+    prewarmPrinter();
     // No forzamos orientación: en tablet usamos la orientación natural del
     // hardware. La TCL 10.1" no respeta el lock de la lib.
     this._dimsUnsub = Dimensions.addEventListener('change', () => this.forceUpdate());
@@ -306,25 +310,26 @@ class ConfirmCashOrderScreen extends Component {
               )}
             </ScrollView>
 
-            {/* CTAs — fijos al pie, siempre visibles */}
+            {/* CTAs — fijos al pie, siempre visibles.
+                Orden: Finalizar venta (primary, izquierda) | Pago completo (secondary, derecha). */}
             <View style={t.ctaRow}>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={t.ctaSecondary}
-                onPress={() => this.props.actions.completePayment({ navigation: this.props.navigation })}>
-                <Icon source="lightning-bolt" size={16} color={T.accent} />
-                <Text style={t.ctaSecondaryText} numberOfLines={1}>Pago completo</Text>
-              </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={[t.ctaPrimary, canFinish && t.ctaPrimaryActive]}
                 disabled={!canFinish}
-                onPress={() => this.props.actions.confirmOrder({ navigation: this.props.navigation })}>
+                onPress={() => this.props.actions.confirmOrder({ navigation: this.props.navigation, from: this.props.route?.params?.from })}>
                 <Text
                   style={[t.ctaPrimaryText, canFinish && t.ctaPrimaryTextActive]}
                   numberOfLines={1}>
                   Finalizar venta
                 </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={t.ctaSecondary}
+                onPress={() => this.props.actions.completePayment({ navigation: this.props.navigation, from: this.props.route?.params?.from })}>
+                <Icon source="lightning-bolt" size={16} color={T.accent} />
+                <Text style={t.ctaSecondaryText} numberOfLines={1}>Pago completo</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -395,7 +400,7 @@ class ConfirmCashOrderScreen extends Component {
 
               <Button
                 mode="contained"
-                onPress={() => this.props.actions.confirmOrder({ navigation: this.props.navigation })}
+                onPress={() => this.props.actions.confirmOrder({ navigation: this.props.navigation, from: this.props.route?.params?.from })}
                 style={{ marginTop: normalizeSize(8) }}
                 contentStyle={{ paddingVertical: normalizeSize(6) }}>
                 Finalizar venta
@@ -422,7 +427,7 @@ class ConfirmCashOrderScreen extends Component {
               </Text>
               <Button
                 mode="outlined"
-                onPress={() => this.props.actions.completePayment({ navigation: this.props.navigation })}
+                onPress={() => this.props.actions.completePayment({ navigation: this.props.navigation, from: this.props.route?.params?.from })}
                 style={{ marginTop: normalizeSize(8) }}>
                 Pago completo
               </Button>

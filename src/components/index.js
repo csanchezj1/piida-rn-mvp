@@ -18,6 +18,7 @@ import QRScanner from "./qrScanner";
 import ProductItem from "./productItem";
 import Keypad from "./Keypad";
 import LimitBanner from "./limitBanner";
+import KeyboardDismiss from "./KeyboardDismiss";
 
 export {
 	ActionButton,
@@ -39,5 +40,6 @@ export {
   QRScanner,
   ProductItem,
   Keypad,
-  LimitBanner
+  LimitBanner,
+  KeyboardDismiss
 };

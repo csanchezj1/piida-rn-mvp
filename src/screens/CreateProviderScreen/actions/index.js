@@ -186,8 +186,10 @@ export const createProvider = ({
         dispatch({
           type: DIALOG_SHOW,
           payload: {
-            title:'Proveedor enviado',
-            message:'Proveedor creado exitosamente.',
+            // El CommonDialog (utils/dialog/component) detecta el título y
+            // pinta icon + color según el caso: "creado" → chulo verde.
+            title:'Proveedor creado',
+            message:'El proveedor quedó listo para que lo uses al surtir inventario.',
           }
         });
         dispatch(getProviders(user.company))

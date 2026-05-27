@@ -213,6 +213,11 @@ export const confirmOrder = ({
             });
             dispatch(getBalance(user.uid));
             
+            // El detalle representa la transacción del ABONO, no la venta
+            // original. `total` se usa en BuyDetails como "VALOR DE LA
+            // TRANSACCIÓN" (Money grande arriba) — debe ser el monto abonado,
+            // no el total de la orden. Mantenemos `orderTotal` aparte por si
+            // el recibo necesita mostrar contexto.
             navigation.reset({
               index: 0,
               routes: [
@@ -223,12 +228,13 @@ export const confirmOrder = ({
                     movementType:response.title,
                     value:sumTotal,
                     paid:Number(paid) + Number(sumTotal),
-                    total:orderTotal,
+                    total:sumTotal,
+                    orderTotal,
                     order:response.order,
                     orderConsecutive:response.consecutive,
                     movement:response.movement,
                     movement_id:response.movement_id,
-                    date:response.date,              
+                    date:response.date,
                   }}
                 },
               ],

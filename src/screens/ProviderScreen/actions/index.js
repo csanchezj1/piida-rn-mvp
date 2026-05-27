@@ -51,7 +51,14 @@ export const getProviders = (pp_id, keyword, resetOffset) => {
       dispatch({type: PROVIDER_REQUEST_MADE, payload: true});
       dispatch({type: PROVIDER_SHOW_LOADER, payload: true});
       providerApi.getProviders(user.email, password, keyword || '', currentOffset)
-      .then(response =>{
+      .then(rawResponse =>{
+        // El back v2 devuelve {nid, name, id_number, phone, ...} pero las
+        // pantallas legacy esperan `label` (shape SelectList). Mapeamos
+        // para que ambas formas funcionen sin tocar callsites.
+        const response = (Array.isArray(rawResponse) ? rawResponse : []).map((r) => ({
+          ...r,
+          label: r.label || r.name || r.title || 'Proveedor',
+        }));
         dispatch({type: PROVIDER_SHOW_LOADER, payload: false});
         let currentList = resetOffset ? null : list;
         if(currentList != null){
@@ -95,12 +102,17 @@ export const getCustomer = (company, keyword, resetOffset) => {
       dispatch({type: PROVIDER_REQUEST_MADE, payload: true});
       dispatch({type: PROVIDER_SHOW_LOADER, payload: true});
       API.getCustomer(company, keyword, currentOffset)
-      .then(response =>{
+      .then(rawResponse =>{
         dispatch({type: PROVIDER_SHOW_LOADER, payload: false});
         // Defensa: si el back responde HTML/error u objeto, evitamos crash en
         // el render que hace list.map(). Antes provocaba "list.map is not a
         // function" al entrar al sheet "Agregar cliente" desde Venta actual.
-        if (!Array.isArray(response)) response = [];
+        let response = Array.isArray(rawResponse) ? rawResponse : [];
+        // Normalizamos label igual que en getProviders.
+        response = response.map((r) => ({
+          ...r,
+          label: r.label || r.name || r.title || 'Cliente',
+        }));
         let currentList = resetOffset ? null : list;
         if(currentList != null){
           if(response.length > 0){

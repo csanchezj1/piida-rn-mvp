@@ -162,20 +162,24 @@ export const getProductCategories = (keyword, resetOffset) => {
 
 export const selectProduct = (item) => {
   return(dispatch, getState) =>{
-    const { product, total } = getState().newSaleData;
+    const { product } = getState().newSaleData;
     const index = product.findIndex(e => e.nid == item.nid);
-    let newtotal = total;
+    // Trabajamos sobre un array nuevo. Mutar el array original
+    // contamina referencias compartidas (ej. initialState del reducer)
+    // y rompe NEW_SALE_CLEAR en ventas posteriores.
+    let next = product;
     if(index !== -1){
       if(product[index].qty < item.available){
-        product[index].qty ++;
-        newtotal = total + parseInt(item.price);
+        next = product.map((p, i) =>
+          i === index ? { ...p, qty: p.qty + 1 } : p,
+        );
         Vibration.vibrate();
         dispatch({type: NEW_SALE_PRODUCT_SELECTED, payload:item.nid});
       }
       else{
         dispatch({
           type: DIALOG_SHOW,
-          payload: { 
+          payload: {
             title:'No puedes agregar el producto',
             message:'Ya has agregado a la orden la cantidad de producto disponible en inventario.',
           }
@@ -184,24 +188,21 @@ export const selectProduct = (item) => {
     }
     else{
       if(item.available > 0){
-        item.qty = 1;
-        product.push(item)
-        newtotal = total + parseInt(item.price);
+        next = [...product, { ...item, qty: 1 }];
         Vibration.vibrate();
         dispatch({type: NEW_SALE_PRODUCT_SELECTED, payload:item.nid});
       }
       else{
         dispatch({
           type: DIALOG_SHOW,
-          payload: { 
+          payload: {
             title:'No puedes agregar el producto',
             message:'El producto seleccionado no posee cantidades disponibles en inventario.',
           }
         });
       }
     }
-    dispatch({ type: NEW_SALE_TOTAL_CHANGE, payload: newtotal });
-    dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: product });
+    dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: next });
     dispatch({ type: NEW_SALE_FORM_FAIL, payload: null });
   }
 };
@@ -250,16 +251,15 @@ export const login = () => {
 
 export const qtyChange = (qty, item) =>{
   return(dispatch, getState) => {
-    const { product, total } = getState().newSaleData;
+    const { product } = getState().newSaleData;
     const index = product.findIndex(e => e.nid == item.nid);
     if(index !== -1){
       let newQty = qty.replace(/[^0-9]/g, '');
       if(newQty <= item.available){
-        const itemPrice = product[index].qty * product[index].price;
-        const newtotal = total - itemPrice + parseInt(item.price * newQty);
-        product[index].qty = newQty;
-        dispatch({ type: NEW_SALE_TOTAL_CHANGE, payload: newtotal });
-        dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: product });
+        const next = product.map((p, i) =>
+          i === index ? { ...p, qty: newQty } : p,
+        );
+        dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: next });
       }
     }
   }
@@ -291,30 +291,27 @@ export const priceChange = (price, item) => {
     if(price == '' || price == null || newPrice === '' || newPrice == null){
       newPrice = 0;
     }
-    const { product, total } = getState().newSaleData;
+    const { product } = getState().newSaleData;
     const index = product.findIndex(e => e.nid == item.nid);
     if(index !== -1){
-      const oldItemPrice = product[index].price * product[index].qty;
-      const newItemPrice = parseInt(newPrice) * product[index].qty;
-      const newtotal = total - oldItemPrice + newItemPrice;
-      
-      product[index].price = newPrice;
-      dispatch({ type: NEW_SALE_TOTAL_CHANGE, payload: newtotal });
-      dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: product });
+      const next = product.map((p, i) =>
+        i === index ? { ...p, price: newPrice } : p,
+      );
+      dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: next });
     }
   }
 };
 
 export const addProduct = (item) => {
   return(dispatch, getState) =>{
-    const { product, total } = getState().newSaleData;
+    const { product } = getState().newSaleData;
     const index = product.findIndex(e => e.nid == item.nid);
     if(index !== -1){
       if(product[index].qty < item.available){
-        product[index].qty ++;
-        let newtotal = total + parseInt(item.price);
-        dispatch({ type: NEW_SALE_TOTAL_CHANGE, payload: newtotal });
-        dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: product });
+        const next = product.map((p, i) =>
+          i === index ? { ...p, qty: p.qty + 1 } : p,
+        );
+        dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: next });
       }
     }
   }
@@ -322,32 +319,22 @@ export const addProduct = (item) => {
 
 export const removeProduct = (item) => {
   return(dispatch, getState) =>{
-    const { product, total } = getState().newSaleData;
+    const { product } = getState().newSaleData;
     const index = product.findIndex(e => e.nid == item.nid);
     if(index !== -1){
-      product[index].qty --;
-      let newtotal = total - parseInt(item.price);
-      dispatch({ type: NEW_SALE_TOTAL_CHANGE, payload: newtotal });
-      if(product[index].qty == 0){
-        product.splice(index, 1)
-        dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: product });
-      }
-      else{
-        dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: product });
-      }
+      const nextQty = (product[index].qty || 0) - 1;
+      const next = nextQty <= 0
+        ? product.filter((_, i) => i !== index)
+        : product.map((p, i) => i === index ? { ...p, qty: nextQty } : p);
+      dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: next });
     }
   }
 };
 
 export const deleteProduct = (item) => {
   return(dispatch, getState) =>{
-    const { product, total } = getState().newSaleData;
-    const index = product.findIndex(e => e.nid == item.nid);
-    if(index !== -1){
-      let newtotal = total - (parseInt(item.price) * product[index].qty);
-      dispatch({ type: NEW_SALE_TOTAL_CHANGE, payload: newtotal });
-      product.splice(index, 1);
-      dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: product });
-    }
+    const { product } = getState().newSaleData;
+    const next = product.filter(p => p.nid != item.nid);
+    dispatch({ type: NEW_SALE_PRODUCT_CHANGE, payload: next });
   }
 };

@@ -1,3 +1,4 @@
+import {ToastAndroid} from 'react-native';
 import validate from 'validate.js';
 import Token from '../../../api/token';
 import API from '../../../api/api';
@@ -7,6 +8,7 @@ import Login from '../../../api/login';
 import {registerSale} from '../../../utils/analytics';
 import {triggerAutoPrintAfterSale} from '../../../utils/printing/triggerAutoPrint';
 import {buildReceiptFromOrderSale} from './receipt';
+import {postSaleNavReset} from '../../../utils/postSaleNav';
 
 import {
   COMMON_PAYMENT_TYPES,
@@ -29,6 +31,22 @@ import {
 
 validate.options = {
   fullMessages: false
+};
+
+// Aviso especial cuando el usuario eligió Fiado pero no hay cliente seleccionado.
+// El CTA principal lleva a la pantalla de selección de cliente (Clients).
+export const requireCustomerForFiado = (navigation) => {
+  return (dispatch) => {
+    dispatch({
+      type: DIALOG_SHOW,
+      payload: {
+        title: 'Cliente requerido',
+        message: 'Para pago fiado el cliente es obligatorio.',
+        acceptTitle: 'Agregar cliente',
+        acceptAction: () => navigation.navigate('Clients', {from: 'customer'}),
+      },
+    });
+  };
 };
 
 export const clearScreen = () => {
@@ -163,9 +181,10 @@ export const obsChange = (value) => {
 
 export const confirmOrder = ({
   uid,
-  navigation
-}) => { 
-  return (dispatch, getState) => { 
+  navigation,
+  from
+}) => {
+  return (dispatch, getState) => {
     const {user} = getState().userData;
     //const {orderPayment, paymentsQty, payment, product, total, customer, observations} = getState().remissionData;
     const {orderPayment, paymentsQty, payment, observations, invoice} = getState().remissionData;
@@ -291,13 +310,7 @@ export const confirmOrder = ({
           })
           .then((response) =>{
             dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
-            dispatch({
-              type: DIALOG_SHOW,
-              payload: { 
-                title:'Venta registrada',
-                message:'La venta quedó registrada correctamente.',
-              }
-            });
+            ToastAndroid.show('Venta finalizada', ToastAndroid.SHORT);
             registerSale(user, response.order, sumTotal);
             dispatch(login());
             dispatch(getMovements(user.branch_office));
@@ -321,18 +334,9 @@ export const confirmOrder = ({
               isCashSale: hasCashPayment,
             });
 
-            // Tras finalizar la venta volvemos a VentaLibre con el carrito
-            // limpio para que el cajero pueda iniciar la próxima venta sin
-            // pasos extra. El detalle de la venta se consulta desde
-            // Órdenes de venta → Historial si hace falta.
+            // Reset condicional según el origen del checkout (VentaLibre o catálogo).
             dispatch({type: NEW_SALE_CLEAR});
-            navigation.reset({
-              index: 1,
-              routes: [
-                {name: 'BottomMenu'},
-                {name: 'VentaLibre'},
-              ],
-            })
+            postSaleNavReset(navigation, from);
           })
           .catch((e) =>{
             console.log(e)

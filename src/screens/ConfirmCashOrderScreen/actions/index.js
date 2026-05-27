@@ -1,3 +1,4 @@
+import {ToastAndroid} from 'react-native';
 import validate from 'validate.js';
 import Token from '../../../api/token';
 import API from '../../../api/api';
@@ -9,6 +10,7 @@ import {triggerAutoPrintAfterSale} from '../../../utils/printing/triggerAutoPrin
 import {buildReceiptFromCashSale} from './receipt';
 import {getCashPaymentMethodId} from '../../../utils/paymentMethods';
 import {buildErrorDialog} from '../../../utils/planLimitDialog';
+import {postSaleNavReset} from '../../../utils/postSaleNav';
 
 import {
   CONFIRM_CASH_ORDER_CONFIRM_VALUE_CHANGE,
@@ -63,8 +65,9 @@ export const valueChange = (code) => {
 };
 
 export const confirmOrder = ({
-  navigation
-}) => { 
+  navigation,
+  from
+}) => {
   return (dispatch, getState) => {
     const {user} = getState().userData;
     const {value, invoice} = getState().confirmCahsOrderData;
@@ -120,13 +123,9 @@ export const confirmOrder = ({
         })
         .then((response) =>{
           dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
-          dispatch({
-            type: DIALOG_SHOW,
-            payload: { 
-              title:'Venta registrada',
-              message:'La venta quedó registrada correctamente.',
-            }
-          });
+          // Toast no-bloqueante (no requiere tocar Aceptar). Replica el patrón
+          // que la web ya usa para finalizar venta.
+          ToastAndroid.show('Venta finalizada', ToastAndroid.SHORT);
           registerSale(user, response.order, total);
           dispatch(login());
           dispatch(getMovements(user.branch_office));
@@ -138,18 +137,11 @@ export const confirmOrder = ({
             isCashSale: true,
           });
 
-          // Tras finalizar la venta volvemos a VentaLibre con el carrito
-          // limpio para que el cajero pueda iniciar la próxima venta sin
-          // pasos extra. El detalle de la venta se consulta desde
-          // Órdenes de venta → Historial si hace falta.
+          // Tras finalizar volvemos al origen del checkout: si entró desde
+          // VentaLibre (teclado libre), reset a VentaLibre. Si entró desde
+          // el catálogo (NewSale dentro del BottomMenu), reset a BottomMenu.
           dispatch({type: NEW_SALE_CLEAR});
-          navigation.reset({
-            index: 1,
-            routes: [
-              {name: 'BottomMenu'},
-              {name: 'VentaLibre'},
-            ],
-          })
+          postSaleNavReset(navigation, from);
         })
         .catch((e) =>{
           console.log(e)
@@ -167,8 +159,9 @@ export const confirmOrder = ({
 };
 
 export const completePayment = ({
-  navigation
-}) => { 
+  navigation,
+  from
+}) => {
   return (dispatch, getState) => {
     const {user} = getState().userData;
     const {invoice} = getState().confirmCahsOrderData;
@@ -206,13 +199,7 @@ export const completePayment = ({
       })
       .then((response) =>{
         dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
-        dispatch({
-          type: DIALOG_SHOW,
-          payload: { 
-            title:'Venta registrada',
-            message:'La venta quedó registrada correctamente.',
-          }
-        });
+        ToastAndroid.show('Venta finalizada', ToastAndroid.SHORT);
         registerSale(user, response.order, total);
         dispatch(login());
         dispatch(getMovements(user.branch_office));
@@ -224,15 +211,9 @@ export const completePayment = ({
           isCashSale: true,
         });
 
-        // Mismo patrón que confirmOrder: vaciar carrito y volver a VentaLibre.
+        // Mismo patrón que confirmOrder: vaciar carrito y respetar origen.
         dispatch({type: NEW_SALE_CLEAR});
-        navigation.reset({
-          index: 1,
-          routes: [
-            {name: 'BottomMenu'},
-            {name: 'VentaLibre'},
-          ],
-        })
+        postSaleNavReset(navigation, from);
       })
       .catch((e) =>{
         console.log(e)

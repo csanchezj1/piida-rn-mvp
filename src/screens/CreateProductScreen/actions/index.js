@@ -1,3 +1,4 @@
+import {ToastAndroid} from 'react-native';
 import validate from 'validate.js';
 import Token from '../../../api/token';
 import Product from '../../../api/product';
@@ -287,37 +288,50 @@ export const createProduct = ({
           })
           .then((response) =>{
             dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
-            dispatch({
-              type: DIALOG_SHOW,
-              payload: { 
-                title:'Nuevo producto',
-                message:'Producto creado exitosamente.',
-              }
-            });
-            dispatch(getProducts(cat));
+            ToastAndroid.show('Producto creado', ToastAndroid.SHORT);
+            // Siempre refrescar la lista global de productos. Si además hay
+            // categoría, refrescar también la lista de variations para esa
+            // categoría. Antes solo se llamaba con cat, lo que dejaba el
+            // listado de Productos desactualizado tras crear con categoría.
+            dispatch(getProducts(null));
+            if (cat) dispatch(getProducts(cat));
             dispatch(getProductCat());
-            createProductEvent(user, response)
+            try { createProductEvent(user, response); } catch (_) { /* analytics no debe bloquear */ }
             navigation.goBack();
           })
-          .catch(() =>{
+          .catch((e) =>{
+            console.log('[create-product] back error:', e);
             dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
             dispatch({
               type: DIALOG_SHOW,
-              payload: { 
+              payload: {
                 title:'Error',
-                message: 'Hubo un error de comunicación con el servidor, por favor revisa tu conexión y/o intenta más tarde.',
+                message:
+                  e?.data?.message ||
+                  (Array.isArray(e?.data?.errors) ? e.data.errors.join('. ') : null) ||
+                  'Hubo un error de comunicación con el servidor, por favor revisa tu conexión y/o intenta más tarde.',
               }
             });
           })
         })
-        .catch(() => {
+        .catch((e) => {
+          console.log('[create-product] token/outer error:', e);
           dispatch({ type: PROGRESS_VISIBLE_CHANGE, payload: false });
+          // Outer catch: típicamente Token.getToken() falló. Lo más común es
+          // 429 (rate limit en /session/token). Surface el motivo si está.
+          const status = e?.status;
+          const dataMsg = e?.data?.message;
+          let message;
+          if (status === 429) {
+            message = 'El servidor está limitando peticiones (429). Esperá unos segundos y volvé a intentar.';
+          } else if (dataMsg) {
+            message = Array.isArray(dataMsg) ? dataMsg.join('. ') : dataMsg;
+          } else {
+            message = 'Hubo un error de comunicación con el servidor, por favor revisa tu conexión y/o intenta más tarde.';
+          }
           dispatch({
             type: DIALOG_SHOW,
-            payload: { 
-              title:'Error',
-              message: 'Hubo un error de comunicación con el servidor, por favor revisa tu conexión y/o intenta más tarde.',
-            }
+            payload: { title: 'Error', message }
           });
         })
       }
@@ -386,16 +400,9 @@ export const getProductCat = () => {
         dispatch({type: PRODUCT_CATEGORIES_LIST_OFFSET, payload: 1});
         dispatch({type: PRODUCT_CATEGORIES_REQUEST_MADE, payload: false});
         dispatch({type: PRODUCT_CATEGORIES_LIST, payload: response});
-
-        dispatch({type: NEW_SALE_SHOW_LOADER, payload: false});
-        dispatch({type: NEW_SALE_LIST_OFFSET, payload: 1});
-        dispatch({type: NEW_SALE_LIST, payload: response});
-        dispatch({type: NEW_SALE_REQUEST_MADE, payload: false});
-
-        dispatch({type: PRODUCTS_SHOW_LOADER, payload: false});
-        dispatch({type: PRODUCTS_LIST_OFFSET, payload: 1});
-        dispatch({type: PRODUCTS_LIST, payload: response});
-        dispatch({type: PRODUCTS_REQUEST_MADE, payload: false});
+        // No dispatchar NEW_SALE_LIST / PRODUCTS_LIST con categorías:
+        // sobreescribía la lista de productos con categorías y al volver
+        // a "Productos" mostraba 6 categorías en vez de los 6 productos.
       })
     })
   }

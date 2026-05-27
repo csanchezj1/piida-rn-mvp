@@ -3,12 +3,12 @@ import { bindActionCreators } from 'redux';
 import Component from '../component';
 import * as actionsCreators from '../actions';
 
-const mapStateToProps = ({userData, createProductData}) => {
-  const { 
+const mapStateToProps = ({userData, createProductData, productCategoriesData}) => {
+  const {
     user
   } = userData;
 
-  const { 
+  const {
     code,
     name,
     price,
@@ -28,6 +28,8 @@ const mapStateToProps = ({userData, createProductData}) => {
     cost
   } = createProductData;
 
+  const categories = productCategoriesData?.list ?? null;
+
   return {
     code,
     name,
@@ -46,7 +48,8 @@ const mapStateToProps = ({userData, createProductData}) => {
     brand,
     type,
     date,
-    cost
+    cost,
+    categories,
   };
 };
 
